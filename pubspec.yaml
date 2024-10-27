@@ -1,0 +1,39 @@
+name: kadahira
+description: "カダイがでたらヒラくやつ"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.4.1 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.19.0
+  cupertino_icons: ^1.0.6
+  flutter_datetime_picker_plus: ^2.2.0
+  shared_preferences: ^2.3.2
+  sqflite: ^2.2.0+3
+  path: ^1.8.3
+  flutter_launcher_icons: ^0.14.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^3.0.0
+
+flutter:
+  assets:
+    - assets/images/
+  uses-material-design: true
+
+flutter_icons:
+  ios: true
+  image_path: "assets/images/kadahira-logo-v2.png"
+  remove_alpha_ios: true
+  android: true
+  adaptive_icon_background: "assets/images/kadahira-logo-v2.png"
+  adaptive_icon_foreground: "assets/images/kadahira-logo-v2.png"
