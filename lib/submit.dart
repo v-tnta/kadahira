@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -50,18 +51,15 @@ class _SubmitState extends State<Submit> {
   final TextEditingController _controllerone = TextEditingController();
   final TextEditingController _controllertwo = TextEditingController();
 
+  DateTime selectedDate = DateTime.now();
+  TimeOfDay selectedTime = TimeOfDay(hour: 23, minute: 59);
 
-  void initState() { // execute when app wakeup
+
+  void initState() {
+    // execute when app wakeup
     super.initState();
-    Timer.periodic(const Duration(seconds: 1), _onTimer); // execute _onTimer for each one second
-    // 初期値を設定
-    _controllerone.text = '0';
-    _controllertwo.text = '1';
-  }
-
-  void setText(){
-    _controllerone.text = 'manaba';
-    _controllertwo.text = 'PDF';
+    Timer.periodic(const Duration(seconds: 1),
+        _onTimer); // execute _onTimer for each one second
   }
 
   void _onTimer(Timer timer) {
@@ -155,35 +153,46 @@ class _SubmitState extends State<Submit> {
                       ),
                     ),
 
-                    Padding(padding: EdgeInsets.only(bottom: 20),
-                      child:
-                      IconButton(
-                        alignment: Alignment.topCenter,
-                        onPressed: () {
-                          DatePicker.showDateTimePicker(
-                            context,
-                            showTitleActions: true,
-                            minTime: DateTime(2024, 4, 1),
-                            currentTime: DateTime(dtnow.year, dtnow.month, dtnow.day, 23, 59),
-                            locale: LocaleType.jp,
-                            onChanged: (datetime) {
-                              debugPrint('change $datetime');
-                              },
-                            onConfirm: (datetime) {
-                              setState(() {
-                                _dateController.text = formatter.format(datetime); // give controller a text as String
-                                submit.datetime = _dateController.text;
-                                submit.timestamp = datetime.microsecondsSinceEpoch; // datetime written by int
-                              });
-                              debugPrint('-- confirm $datetime --');
-                            },
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.calendar_month_outlined, size: 30, // I set the icon but the app doesn't show it!!!!!!WHAT!?
-                        ),
-                      ),
-                    )
+                    ElevatedButton(
+                      onPressed: () async {
+                        //  //  //  //
+                        // DatePicker
+                        final datepicked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime(2024, 4, 1), lastDate: DateTime(2200),
+                          currentDate: DateTime(dtnow.year, dtnow.month, dtnow.day, 23, 59)
+                        );
+                        if (datepicked != null && datepicked != selectedDate) {
+                          selectedDate = datepicked;
+
+                        //  //  //  //
+                        // TimePicker
+                        final timepicked = await showTimePicker(
+                            context: context,
+                            initialTime: selectedTime,
+                            builder: (BuildContext context, Widget? child) {
+                              return MediaQuery(
+                                data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+                                child: child!,
+                              );
+                            });
+                        if (timepicked != null && timepicked != selectedTime) {
+                          selectedTime = timepicked;
+                        }
+
+                        DateTime marged = DateTime( //
+                          selectedDate.year,selectedDate.month,selectedDate.day,
+                          selectedTime.hour, selectedTime.minute
+                        );
+
+                        _dateController.text = formatter.format(marged); // give controller a text as String
+                        submit.datetime = _dateController.text;
+                        submit.timestamp = marged
+                        .microsecondsSinceEpoch; // datetime written by int
+                        }},
+                      child: const Icon(Icons.calendar_month_outlined),
+                    ),
                   ]
                 ),
 
@@ -227,26 +236,31 @@ class _SubmitState extends State<Submit> {
                 ),
 
                 Material(
-                  child: Ink.image(
-                    height: 70,
-                    width: 180,
+                  /*child: Ink.image(
+                    height: 60,
+                    width: 140,
                     image: const AssetImage('assets/images/kadahira-submit.png'),
                     fit: BoxFit.cover,
-                    child: InkWell(
-                        onTap:() {
-                          FocusScope.of(context).unfocus(); // close keyboard
-                          if (submit.name!=''&&submit.datetime!=''&&submit.area!=''&&submit.format!='') {
-                            saveLocalData(submit);
-                            Navigator.pop(context, submit);
-                          }else{
-                            showDialog(
-                                context: context,
-                                builder: (context){
-                                  return const AlertDialog(content: Text('欄を全て埋めてください'));
-                                });
-                          }
-                          },
-                        splashColor: Colors.white.withOpacity(0.2)//withOpacity:add opacity
+                    child: InkWell(*/
+                  child: Container(
+                      decoration: BoxDecoration( // BoxDecorationで角丸に
+                        border: Border.all(color: Colors.black38, width: 4),
+                        borderRadius: BorderRadius.circular(10),),
+                        child:TextButton(
+                          child: const Text('トウロク', style: TextStyle(fontSize: 20)),
+                          onPressed:(){
+                                FocusScope.of(context).unfocus(); // close keyboard
+                                if (submit.name!=''&&submit.datetime!=''&&submit.area!=''&&submit.format!='') {
+                                  saveLocalData(submit);
+                                  Navigator.pop(context, submit);
+                                }else{
+                                  showDialog(
+                                      context: context,
+                                      builder: (context){
+                                        return const AlertDialog(title: Text('欄を全て埋めてください', style: TextStyle(fontSize: 18),), alignment: Alignment.center);
+                                      });
+                                }},
+                        //splashColor: Colors.white.withOpacity(0.2)//withOpacity:add opacity
                     ),
                   ),
                 ),
@@ -255,7 +269,7 @@ class _SubmitState extends State<Submit> {
                       FocusScope.of(context).unfocus();
                       Navigator.pop(context);
                     },
-                    child: const Text('< Back <'))
+                    child: const Text('< Back'))
               ]
             )
           )

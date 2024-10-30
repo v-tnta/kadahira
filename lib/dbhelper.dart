@@ -61,6 +61,14 @@ class DatabaseHelper {
     );
   }
 
+  //データの編集
+  Future<int> editRecord(int id, Map<String, dynamic> record) async {
+    final db = await database;
+    return await db.update('records', record,
+        where: 'id = ?',      // 条件を指定（idが一致するレコード）
+        whereArgs: record['$id']);
+  }
+
   // 全データの取得
   Future<List<Map<String, dynamic>>> getAllRecords() async {
     final db = await database;

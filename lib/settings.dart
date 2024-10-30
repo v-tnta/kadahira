@@ -13,7 +13,8 @@ class _KdSettingsState extends State<KdSettings>{
   String? isSelectedItem = 'aaa';
 
   //debug
-  Set<String> items={'a','b','c'};
+  late List <String> AreaList;
+  late List <String> FormatList;
 
 
   @override
