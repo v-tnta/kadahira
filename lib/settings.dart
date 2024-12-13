@@ -76,7 +76,7 @@ class _KdSettingsState extends State<KdSettings>{
                   const Padding(
                     padding: EdgeInsets.only(top:20,),
                     child: Text (
-                      'カダイがでたらヒラくやつ β0.1',
+                      'カダイがでたらヒラくやつ β0.2',
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     )
                   ),

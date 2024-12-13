@@ -2,15 +2,20 @@
 
 カダイがでたらヒラくやつ
 
-## Getting Started
+## SIMPLE × BIG = EASY
 
-This project is a starting point for a Flutter application.
+ついつい、” 学校の宿題 ”、" 大学の課題 "を忘れがちな、学生のあなたへ......
 
-A few resources to get you started if this is your first Flutter project:
+アプリを開いたら、どデカいボタンを押して、
+課題の登録はたったの10秒。
+しかも、登録するだけで、〆切の日付順 🗓️ に並び替えてくれるので
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+『やることが多すぎて、何から手をつければいいかわからない……🤦‍♀️』
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+なんていう 悩みとはもう おさらばです！！🥳
+
+~~
+
+使い方はとってもシンプル。
+「学校でカダイが出たら、これをヒラく！」　「宿題が出たら、これを開く！」
+これだけで、もう、忘れない。見落とさない。
