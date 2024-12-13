@@ -19,3 +19,13 @@
 使い方はとってもシンプル。
 「学校でカダイが出たら、これをヒラく！」　「宿題が出たら、これを開く！」
 これだけで、もう、忘れない。見落とさない。
+
+~~
+
+## Screen Shots
+
+![Screenshot_20241212_222225](https://github.com/user-attachments/assets/27e9cd2f-cca3-4c1a-8ecf-bab292005173)
+
+![Screenshot_20241212_222459](https://github.com/user-attachments/assets/45ceaa45-d544-4444-9cc4-acdbc3bad979)
+
+![Screenshot_20241212_222528](https://github.com/user-attachments/assets/d8829257-d375-4616-a975-fd65035be915)
