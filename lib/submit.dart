@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,6 +27,8 @@ Future<void> saveLocalData(kadaidata submit) async {
 }
 
 class Submit extends StatefulWidget {
+  const Submit({super.key});
+
   @override
   _SubmitState createState() => _SubmitState();
 }
@@ -39,7 +39,7 @@ class _SubmitState extends State<Submit> {
   final shardPreferences = SharedPreferences.getInstance();
 
   // kadailist class
-  kadaidata submit = new kadaidata(0, '', '', '', '', 0);
+  kadaidata submit = kadaidata(0, '', '', '', '', 0);
 
   //DateFomatter
   DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
@@ -51,22 +51,29 @@ class _SubmitState extends State<Submit> {
   final TextEditingController _controllerone = TextEditingController();
   final TextEditingController _controllertwo = TextEditingController();
 
-  DateTime selectedDate = DateTime.now();
-  TimeOfDay selectedTime = TimeOfDay(hour: 23, minute: 59);
 
-
-  void initState() {
-    // execute when app wakeup
+  @override
+  void initState() { // execute when app wakeup
     super.initState();
-    Timer.periodic(const Duration(seconds: 1),
-        _onTimer); // execute _onTimer for each one second
+    Timer.periodic(const Duration(seconds: 1), _onTimer); // execute _onTimer for each one second
+    // 初期値を設定
+    _controllerone.text = '0';
+    _controllertwo.text = '1';
   }
 
   void _onTimer(Timer timer) {
-    DateFormat('HH:mm:ss').format(DateTime.now());
-    setState(() {}
-    );
+    if (mounted){ // avoid calling _ontimer after executing dispose()
+      setState((){
+        DateFormat('HH:mm:ss').format(DateTime.now());
+      });
+    }
   }
+
+  void setText(){
+    _controllerone.text = 'manaba';
+    _controllertwo.text = 'PDF';
+  }
+
 
   @override
   void dispose() {
@@ -128,10 +135,11 @@ class _SubmitState extends State<Submit> {
                   child: TextFormField(
                     keyboardType: TextInputType.text,
                     decoration: const InputDecoration(
-                      labelText: 'カダイの名前'
+                        labelText: 'カダイの名前',
+                        hintText: '○○のレポート 等'
                     ),
-                    onChanged: (kadai_name){
-                      submit.name = kadai_name; // substitute the data for kadaidata class instance 'submit'
+                    onChanged: (kadaiName){
+                      submit.name = kadaiName; // substitute the data for kadaidata class instance 'submit'
                     },
                   ),
                 ),
@@ -148,51 +156,40 @@ class _SubmitState extends State<Submit> {
                           color: Colors.black
                         ),
                         decoration: const InputDecoration(
-                          labelText: '提出日'
+                          labelText: '提出日    ここから選択 →'
                         ),
                       ),
                     ),
 
-                    ElevatedButton(
-                      onPressed: () async {
-                        //  //  //  //
-                        // DatePicker
-                        final datepicked = await showDatePicker(
-                          context: context,
-                          initialDate: selectedDate,
-                          firstDate: DateTime(2024, 4, 1), lastDate: DateTime(2200),
-                          currentDate: DateTime(dtnow.year, dtnow.month, dtnow.day, 23, 59)
-                        );
-                        if (datepicked != null && datepicked != selectedDate) {
-                          selectedDate = datepicked;
-
-                        //  //  //  //
-                        // TimePicker
-                        final timepicked = await showTimePicker(
-                            context: context,
-                            initialTime: selectedTime,
-                            builder: (BuildContext context, Widget? child) {
-                              return MediaQuery(
-                                data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-                                child: child!,
-                              );
-                            });
-                        if (timepicked != null && timepicked != selectedTime) {
-                          selectedTime = timepicked;
-                        }
-
-                        DateTime marged = DateTime( //
-                          selectedDate.year,selectedDate.month,selectedDate.day,
-                          selectedTime.hour, selectedTime.minute
-                        );
-
-                        _dateController.text = formatter.format(marged); // give controller a text as String
-                        submit.datetime = _dateController.text;
-                        submit.timestamp = marged
-                        .microsecondsSinceEpoch; // datetime written by int
-                        }},
-                      child: const Icon(Icons.calendar_month_outlined),
-                    ),
+                    Padding(padding: const EdgeInsets.only(bottom: 20),
+                      child:
+                      IconButton(
+                        alignment: Alignment.topCenter,
+                        onPressed: () {
+                          DatePicker.showDateTimePicker(
+                            context,
+                            showTitleActions: true,
+                            minTime: DateTime(2024, 4, 1),
+                            currentTime: DateTime(dtnow.year, dtnow.month, dtnow.day, 23, 59),
+                            locale: LocaleType.jp,
+                            onChanged: (datetime) {
+                              debugPrint('change $datetime');
+                              },
+                            onConfirm: (datetime) {
+                              setState(() {
+                                _dateController.text = formatter.format(datetime); // give controller a text as String
+                                submit.datetime = _dateController.text;
+                                submit.timestamp = datetime.microsecondsSinceEpoch; // datetime written by int
+                              });
+                              debugPrint('-- confirm $datetime --');
+                            },
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.calendar_month_outlined, size: 30, // I set the icon but the app doesn't show it!!!!!!WHAT!?
+                        ),
+                      ),
+                    )
                   ]
                 ),
 
@@ -206,10 +203,11 @@ class _SubmitState extends State<Submit> {
                         child: TextFormField(
                           //controller: _controllerone, // // // my settings --- re change this
                           decoration: const InputDecoration(
-                              labelText: '提出サキ'
+                              labelText: '提出サキ',
+                              hintText: 'Teams, manaba  等'
                           ),
-                          onChanged: (kadai_area){
-                              submit.area = kadai_area;
+                          onChanged: (kadaiArea){
+                              submit.area = kadaiArea;
                           },
                         )
                     ),
@@ -225,10 +223,11 @@ class _SubmitState extends State<Submit> {
                         child: TextFormField(
                           //controller: _controllertwo, // // // this is also my settings
                           decoration: const InputDecoration(
-                                labelText: '提出ケイシキ'
+                              labelText: '提出ケイシキ',
+                              hintText: 'PDF, Word  等'
                             ),
-                          onChanged: (kadai_format){
-                              submit.format = kadai_format;
+                          onChanged: (kadaiFormat){
+                              submit.format = kadaiFormat;
                           },
                         )
                     ),
@@ -236,40 +235,39 @@ class _SubmitState extends State<Submit> {
                 ),
 
                 Material(
-                  /*child: Ink.image(
-                    height: 60,
-                    width: 140,
-                    image: const AssetImage('assets/images/kadahira-submit.png'),
-                    fit: BoxFit.cover,
-                    child: InkWell(*/
                   child: Container(
-                      decoration: BoxDecoration( // BoxDecorationで角丸に
-                        border: Border.all(color: Colors.black38, width: 4),
-                        borderRadius: BorderRadius.circular(10),),
-                        child:TextButton(
-                          child: const Text('トウロク', style: TextStyle(fontSize: 20)),
-                          onPressed:(){
-                                FocusScope.of(context).unfocus(); // close keyboard
-                                if (submit.name!=''&&submit.datetime!=''&&submit.area!=''&&submit.format!='') {
-                                  saveLocalData(submit);
-                                  Navigator.pop(context, submit);
-                                }else{
-                                  showDialog(
-                                      context: context,
-                                      builder: (context){
-                                        return const AlertDialog(title: Text('欄を全て埋めてください', style: TextStyle(fontSize: 18),), alignment: Alignment.center);
-                                      });
-                                }},
-                        //splashColor: Colors.white.withOpacity(0.2)//withOpacity:add opacity
+                    decoration: BoxDecoration( // BoxDecorationで角丸に
+                      border: Border.all(color: Colors.black87, width: 3),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child:TextButton(
+                      child: const Text('トウロク', style: TextStyle(fontSize: 22, color: Colors.indigo)),
+                      onPressed:(){
+                        FocusScope.of(context).unfocus(); // close keyboard
+                        if (submit.name!=''&&submit.datetime!=''&&submit.area!=''&&submit.format!='') {
+                          saveLocalData(submit);
+                          Navigator.pop(context,submit);
+                        }else{
+                          showDialog(
+                              context: context,
+                              builder: (context){
+                                return const AlertDialog(title: Text('欄を全て埋めてください', style: TextStyle(fontSize: 18),), alignment: Alignment.center);
+                              });
+                        }},
+                      //splashColor: Colors.white.withOpacity(0.2)//withOpacity:add opacity
                     ),
                   ),
                 ),
-                TextButton(
-                    onPressed: (){
-                      FocusScope.of(context).unfocus();
-                      Navigator.pop(context);
-                    },
-                    child: const Text('< Back'))
+                Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: TextButton(
+                        onPressed: (){
+                          FocusScope.of(context).unfocus();
+                          Navigator.pop(context, null);
+                          },
+                        child: const Text('< Back', style: TextStyle(fontSize: 14, color: Colors.indigo))
+                    )
+                )
               ]
             )
           )

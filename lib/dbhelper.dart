@@ -64,9 +64,11 @@ class DatabaseHelper {
   //データの編集
   Future<int> editRecord(int id, Map<String, dynamic> record) async {
     final db = await database;
-    return await db.update('records', record,
-        where: 'id = ?',      // 条件を指定（idが一致するレコード）
-        whereArgs: record['$id']);
+
+    return await
+      db.update('records', record,
+          where: 'id = ?',      // 条件を指定（idが一致するレコード）
+          whereArgs: [id]);
   }
 
   // 全データの取得
@@ -74,4 +76,5 @@ class DatabaseHelper {
     final db = await database;
     return await db.query('records');
   }
+
 }
