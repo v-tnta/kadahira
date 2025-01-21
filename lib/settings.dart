@@ -32,9 +32,9 @@ class _KdSettingsState extends State<KdSettings>{
     setState((){
       cnt = shprefs.getInt('count_easter_egg')!;
       _controller_noti.text = shprefs.getInt('notification_time').toString();
-      _controller_noti.text ??= '';
+      //_controller_noti.text ??= '';
       isSwitch = shprefs.getBool('notification_tf')!;
-      isSwitch ??= false; // nullならfalseに
+      //isSwitch ??= false; // nullならfalseに
     }); // cntに読み出し
   }
 
