@@ -7,29 +7,34 @@ class KdSettings extends StatefulWidget{
   const KdSettings({super.key});
 
   @override
-  _KdSettingsState createState() => _KdSettingsState();
+  State<KdSettings> createState() => _KdSettingsState();
 }
 
 class _KdSettingsState extends State<KdSettings>{
-  String? isSelectedItem = 'aaa';
 
   //debug
   late List <String> AreaList;
   late List <String> FormatList;
   int cnt = 0;
   int egg = 0;
+  late bool isSwitch;
   var EasterEggColor = Color.fromRGBO(254, 247, 255, 0);
+  final TextEditingController _controller_noti = TextEditingController();
 
 @override
   void initState(){
     super.initState();
-    _read_count();
+    _read_shprefs();
   }
 
-  Future <void> _read_count() async{
+  void _read_shprefs() async{
     final shprefs = await SharedPreferences.getInstance();
     setState((){
       cnt = shprefs.getInt('count_easter_egg')!;
+      _controller_noti.text = shprefs.getInt('notification_time').toString();
+      _controller_noti.text ??= '';
+      isSwitch = shprefs.getBool('notification_tf')!;
+      isSwitch ??= false; // nullならfalseに
     }); // cntに読み出し
   }
 
@@ -48,7 +53,7 @@ class _KdSettingsState extends State<KdSettings>{
 
         body: Center(
             child:Column(
-                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
 
                   Spacer(),
@@ -76,7 +81,7 @@ class _KdSettingsState extends State<KdSettings>{
                   const Padding(
                     padding: EdgeInsets.only(top:20,),
                     child: Text (
-                      'カダイがでたらヒラくやつ β0.2',
+                      'カダイがでたらヒラくやつ β0.3',
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     )
                   ),
@@ -105,6 +110,61 @@ class _KdSettingsState extends State<KdSettings>{
                             style: TextStyle(color: EasterEggColor),
                           )
                   ),
+
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                            "提出〆切の",
+                            style: TextStyle(
+                                fontSize: 18
+                            )
+                        ),
+                        SizedBox(
+                          width:20,
+                          child:TextFormField(
+                            controller: _controller_noti,
+                            keyboardType: TextInputType.text,
+                            onChanged:(input) async {
+                              final shprefs = await SharedPreferences.getInstance();
+                              // 入力を整数に変換して保存
+                              if (int.tryParse(input) != null) {
+                                shprefs.setInt('notification_time', int.parse(input));
+                              }
+                            }
+                          ),
+                        ),
+                        const Text(
+                          "分前に通知",
+                          style: TextStyle(
+                            fontSize: 18
+                          )
+                        ),
+
+                        const SizedBox(width:10),
+
+                        Switch(
+                            value: isSwitch,
+                            onChanged: (val) async{
+                              final shprefs = await SharedPreferences.getInstance();
+
+                              if (val==true){
+                                shprefs.setBool('notification_tf', true);
+                              }else{
+                                shprefs.setBool('notification_tf', false);
+                              }
+                              setState((){
+                                isSwitch = val; // 状態を更新
+                              });
+                            }
+                        )
+                      ],
+                    )
+                  ),
+
+                  const SizedBox(width: 8),
 
                   TextButton(
                       onPressed: (){
