@@ -31,7 +31,7 @@ class _KdSettingsState extends State<KdSettings> {
       isSwitch = prefs.getBool('notification_tf') ?? false;
     });
 
-    // デバッグログ
+    // debug log
     debugPrint("count_easter_egg: $cnt");
     debugPrint("notification_time: ${_controller_noti.text}");
     debugPrint("notification_tf: $isSwitch");
