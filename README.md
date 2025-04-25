@@ -1,4 +1,3 @@
-# kadahira
 
 カダイがでたらヒラくやつ
 
@@ -24,8 +23,6 @@
 
 ## Screen Shots
 
-![Screenshot_20241212_222225](https://github.com/user-attachments/assets/27e9cd2f-cca3-4c1a-8ecf-bab292005173)
-
-![Screenshot_20241212_222459](https://github.com/user-attachments/assets/45ceaa45-d544-4444-9cc4-acdbc3bad979)
-
-![Screenshot_20241212_222528](https://github.com/user-attachments/assets/d8829257-d375-4616-a975-fd65035be915)
+<img width="400" src="https://github.com/user-attachments/assets/27e9cd2f-cca3-4c1a-8ecf-bab292005173">
+<img width="400" src="https://github.com/user-attachments/assets/45ceaa45-d544-4444-9cc4-acdbc3bad979">
+<img width="400" src="https://github.com/user-attachments/assets/d8829257-d375-4616-a975-fd65035be915">
