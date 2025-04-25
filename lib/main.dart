@@ -1,13 +1,23 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:kadahira/settings.dart';
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
+
+
 import 'dbhelper.dart';
 import 'kadaidata.dart';
 import 'submit.dart';
+
+//// notification  ////
+
+
+
+
 
 ////  DB  /////
 
@@ -48,7 +58,6 @@ Future<void> loadLocalData(List<kadaidata> kadaiList) async {
 
 ////////////
 
-
 void _count_done() async{
   int cnt=1;
   final shprefs = await SharedPreferences.getInstance();
@@ -57,12 +66,13 @@ void _count_done() async{
   }else{
     cnt = shprefs.getInt('count_easter_egg')!; // cntに読み出し
     shprefs.setInt('count_easter_egg', ++cnt); // インクリメントした値で更新
-    debugPrint("--debugPrint cnt--$cnt--");  //         //         //        //        //         //   debug   //        //       //
   }
 }
 
 void main() {
   initializeDateFormatting('ja_JP', '');
+
+
   runApp(const MyApp());
 }
 
@@ -89,32 +99,24 @@ class MyHomePage extends StatefulWidget{
 
 
 class _MyHomePageState extends State<MyHomePage>{
-
   //initializer
   _MyHomePageState(this.new_kadai);
 
   // for data saving
   final shardPreferences = SharedPreferences.getInstance();
 
-  ///////////////////////////////////////////
-
   // kadaidata instance for data adding
   kadaidata? new_kadai = kadaidata(0, '', '', '', '', 0);
-
 
   // List for kadai list below the button
   List<kadaidata> kadaiList = [];
   kadaidata poolkadai = kadaidata(0, '', '', '', '', 0);
-
-  ///////////////////////////////////////////
 
 
   @override
   void initState() { // execute when app wakeup
     super.initState();
     loadLocalData(kadaiList);
-
-    debugPrint('---------------initState--------------');
     Timer.periodic(const Duration(seconds: 1), _onTimer); // execute _onTimer for each one second
   }
 
