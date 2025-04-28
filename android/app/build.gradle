@@ -30,12 +30,12 @@ if (keystorePropertiesFile.exists()) {
 }
 android {
     namespace = "com.v_tnta.kadahira"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    compileSdk = 35
+    ndkVersion = "28.1.13356709"
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21 // update for notification
-        targetCompatibility = JavaVersion.VERSION_21
+        sourceCompatibility = JavaVersion.VERSION_17 // replace with v17
+        targetCompatibility = JavaVersion.VERSION_17
         // Flag to enable support for the new language APIs
         coreLibraryDesugaringEnabled true // for notification
     }
@@ -54,7 +54,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 35
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
         multiDexEnabled true // for notification
@@ -76,5 +76,5 @@ flutter {
 }
 
 dependencies {
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4' // updated for flutter local notifications
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.5' // updated for flutter local notifications
 }

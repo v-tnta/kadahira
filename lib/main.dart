@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
-import 'package:flutter/foundation.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -220,13 +219,13 @@ class _MyHomePageState extends State<MyHomePage>{
 
   Future<void> showEditDialog(BuildContext context, kadaidata poolkadai) async {
     // kadailist class
-    kadaidata edited_kadai = kadaidata(
+    kadaidata editedKadai = kadaidata(
         poolkadai.id, poolkadai.name,
         poolkadai.datetime, poolkadai.area,
         poolkadai.format, poolkadai.timestamp); // otherwise not to set the address of poolkadai
 
     //controller
-    TextEditingController _EditFormController = TextEditingController();
+    TextEditingController EditFormController = TextEditingController();
 
     return showDialog<void>(
       context: context,
@@ -246,21 +245,21 @@ class _MyHomePageState extends State<MyHomePage>{
                           TextFormField(
                             decoration: InputDecoration(labelText: 'カダイの名前', hintText: '${poolkadai.name} (変更なし)'),
                             onChanged: (val){
-                              edited_kadai.name=val;
+                              editedKadai.name=val;
                             },
                           ),
 
                           TextFormField(
                             decoration: InputDecoration(labelText: '提出サキ', hintText: '${poolkadai.area} (変更なし)'),
                             onChanged: (val){
-                              edited_kadai.area=val;
+                              editedKadai.area=val;
                             },
                           ),
 
                           TextFormField(
                               decoration: InputDecoration(labelText: '提出ケイシキ', hintText: '${poolkadai.format} (変更なし)'),
                               onChanged: (val) {
-                                edited_kadai.format = val;
+                                editedKadai.format = val;
                               }
                           ),
 
@@ -269,7 +268,7 @@ class _MyHomePageState extends State<MyHomePage>{
 
                           TextField(
                             enabled: false, // prohibit input
-                            controller: _EditFormController,
+                            controller: EditFormController,
                             style: const TextStyle(
                                 color: Colors.black
                             ),
@@ -292,9 +291,9 @@ class _MyHomePageState extends State<MyHomePage>{
                                 },
                                 onConfirm: (datetime) {
                                   DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
-                                  _EditFormController.text = formatter.format(datetime); // give controller a text as String
-                                  edited_kadai.datetime = _EditFormController.text;
-                                  edited_kadai.timestamp = datetime.microsecondsSinceEpoch; // datetime written by int
+                                  EditFormController.text = formatter.format(datetime); // give controller a text as String
+                                  editedKadai.datetime = EditFormController.text;
+                                  editedKadai.timestamp = datetime.microsecondsSinceEpoch; // datetime written by int
                                   debugPrint('-- confirm $datetime --');
                                 },
                               );
@@ -318,10 +317,10 @@ class _MyHomePageState extends State<MyHomePage>{
                   TextButton(
                     child: const Text('OK'),
                     onPressed: () {
-                      editLocalData(edited_kadai.id, edited_kadai);
+                      editLocalData(editedKadai.id, editedKadai);
                       setState(() async{
-                        await NotificationService.cancelAllNotifications(edited_kadai.id); // cancel notification
-                        await NotificationService.scheduleNotification(edited_kadai); // set new notification
+                        await NotificationService.cancelAllNotifications(editedKadai.id); // cancel notification
+                        await NotificationService.scheduleNotification(editedKadai); // set new notification
                         kadaiList = [];
                         loadLocalData(kadaiList);
                         kadaiList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
