@@ -4,31 +4,44 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_datetime_picker_plus/flutter_datetime_picker_plus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_native_timezone/flutter_native_timezone.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:timezone/data/latest_all.dart' as tz;
-import 'package:timezone/timezone.dart' as tz;
 
 import 'package:kadahira/settings.dart';
 import 'package:kadahira/dbhelper.dart';
 import 'package:kadahira/kadaidata.dart';
 import 'package:kadahira/submit.dart';
+import 'package:kadahira/notificationservice.dart';
 
 
 //// notification  ////
+
+Future<void> setupAllNotifications(List<kadaidata> kadaiList) async {
+  final prefs = await SharedPreferences.getInstance();
+  for (final kadai in kadaiList) {
+    await NotificationService.cancelAllNotifications(kadai.id);
+  }
+  if (prefs.getBool('notifination_tf')==true){ // set notifications by prefs val
+    for (final kadai in kadaiList) {
+      await NotificationService.scheduleNotification(kadai);
+    }
+  }
+}
+
 
 // must need for Android13 or later
 Future<void> requestNotificationPermission() async {
   if (await Permission.notification.isDenied) {
     await Permission.notification.request();
+  }else{
+    debugPrint('permitted! - notification -');
   }
 }
 
+/*
 //void notificationSetup(){
   // initialize for notification
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -74,7 +87,7 @@ Future<void> scheduleNotifications() async {
               priority: Priority.high,
             ),
           ),
-          androidScheduleMode: null , // // // // --------------------------------------------------------------------?????? actually i wanna add " androidAllowWhileIdle: true"
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle , // // // // allow notify on exact time
         );
       }
     }
@@ -86,11 +99,11 @@ Future<void> scheduleNotifications() async {
 // timezone settings
 Future<void> configureLocalTimeZone() async {
   tz.initializeTimeZones();
-  final String timeZoneName = await FlutterNativeTimezone.getLocalTimezone(); // タイムゾーンの取得→setLLにて使用
+  final String timeZoneName = await FlutterTimezone.getLocalTimezone(); // タイムゾーンの取得→setLLにて使用 // dlutter_nativetimezoneから移行
   tz.setLocalLocation(tz.getLocation(timeZoneName));
 }
 
-
+*/
 
 ////  DB  /////
 
@@ -142,9 +155,14 @@ void _count_done() async{
   }
 }
 
-void main() {
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+  await requestNotificationPermission();
+  await NotificationService.init(); // async --<<
   initializeDateFormatting('ja_JP', '');
+
   //notificationSetup();
+  //requestNotificationPermission();
 
   runApp(const MyApp());
 }
@@ -190,6 +208,8 @@ class _MyHomePageState extends State<MyHomePage>{
   void initState() { // execute when app wakeup
     super.initState();
     loadLocalData(kadaiList);
+    setupAllNotifications(kadaiList); // set up notification for the kadai on kadaiList
+
     Timer.periodic(const Duration(seconds: 1), _onTimer); // execute _onTimer for each one second
   }
 
@@ -299,7 +319,9 @@ class _MyHomePageState extends State<MyHomePage>{
                     child: const Text('OK'),
                     onPressed: () {
                       editLocalData(edited_kadai.id, edited_kadai);
-                      setState(() {
+                      setState(() async{
+                        await NotificationService.cancelAllNotifications(edited_kadai.id); // cancel notification
+                        await NotificationService.scheduleNotification(edited_kadai); // set new notification
                         kadaiList = [];
                         loadLocalData(kadaiList);
                         kadaiList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
@@ -384,8 +406,9 @@ class _MyHomePageState extends State<MyHomePage>{
                         );
 
                         if(new_kadai!=null){
-                          setState((){
+                          setState(() async{
                             kadaiList.add(new_kadai!); // push new kadai for the Lists
+                            await NotificationService.scheduleNotification(new_kadai!); // set notification
                             kadaiList.sort((a, b) => a.timestamp.compareTo(b.timestamp)); // sort by date time at here
                           });
                         }},
@@ -515,11 +538,12 @@ class _MyHomePageState extends State<MyHomePage>{
                                                       ),
                                                       TextButton(
                                                         child:const Text('できた！', style: TextStyle(fontSize: 18, color: Colors.indigo)),
-                                                        onPressed: (){
+                                                        onPressed: () async{
 
                                                           _count_done();                  // for easter_egg
                                                           poolkadai = kadaiList[index];
                                                           kadaiList.removeAt(index);      // Delete the kadai
+                                                          await NotificationService.cancelAllNotifications(poolkadai.id); // cancel notification
                                                           deleteLocalData(poolkadai.id);  // Delete kadai from the DB
                                                           Navigator.pop(context);
                                                           showDialog(
