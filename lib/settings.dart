@@ -124,11 +124,12 @@ class _KdSettingsState extends State<KdSettings> {
                         SizedBox(
                           width: 40,
                           child: TextFormField(
+                              textAlign: TextAlign.center,
                               controller: _controller_noti,
                               keyboardType: TextInputType.number,
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                               onChanged: (input) async {
-                                final prefs =
-                                await SharedPreferences.getInstance();
+                                final prefs = await SharedPreferences.getInstance();
                                 final intVal = int.tryParse(input);
                                 if (intVal != null) {
                                   await prefs.setInt(
@@ -138,7 +139,11 @@ class _KdSettingsState extends State<KdSettings> {
                               }),
                         ),
                         const Text(
-                          "分前に通知",
+                          "分前",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const Text(
+                          "に通知",
                           style: TextStyle(fontSize: 18),
                         ),
                         const SizedBox(width: 10),

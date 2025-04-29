@@ -235,7 +235,7 @@ class _MyHomePageState extends State<MyHomePage>{
                                 color: Colors.black
                             ),
                             decoration: const InputDecoration(
-                                labelText: '提出日'
+                                labelText: '〆切'
                             ),
                           ),
 
@@ -278,22 +278,18 @@ class _MyHomePageState extends State<MyHomePage>{
 
                   TextButton(
                     child: const Text('OK'),
-                    onPressed: () {
+                    onPressed: () async{
                       editLocalData(editedKadai.id, editedKadai);
-                      setState(()async{
-
-                        await NotificationService.cancelAllNotifications(); // cancel notification
-                        await NotificationService.scheduleNotification(editedKadai); // set new notification
-                        // setup new notification
-
+                      await NotificationService.cancelAllNotifications(); // cancel notification
+                      await NotificationService.scheduleNotification(editedKadai); // set new notification
+                      // setup new notification
+                      setState((){
                         kadaiList = [];
                         loadLocalData(kadaiList);
                         kadaiList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
                         // reset KadaiList to show updated list
-
-                      });
-                      Navigator.of(context).pop();
-                      },
+                        Navigator.of(context).pop();
+                      });},
                   ),
                 ],
             )
@@ -373,13 +369,12 @@ class _MyHomePageState extends State<MyHomePage>{
                         );
 
                         if(new_kadai!=null){
-                          setState(()async{
+                          await NotificationService.scheduleNotification(new_kadai!);
+                          // set notification
+
+                          setState((){
                             kadaiList.add(new_kadai!);
                             // push new kadai for the Lists
-
-                            await NotificationService.scheduleNotification(new_kadai!);
-                            // set notification
-
                             kadaiList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
                             // sort by date time at here
                           });
@@ -401,7 +396,7 @@ class _MyHomePageState extends State<MyHomePage>{
               ),
 
               Container(
-                height: 500,
+                height: 400,
                 padding: const EdgeInsets.all(4),
                 // childrenを指定してリスト表示
 
@@ -479,7 +474,7 @@ class _MyHomePageState extends State<MyHomePage>{
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
                                         Text(
-                                          ('提出日:${poolkadai.datetime}'),
+                                          ('〆切:${poolkadai.datetime}'),
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
                                             fontSize: 16,

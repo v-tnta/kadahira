@@ -76,8 +76,8 @@ class NotificationService {
 
       await _flutterLocalNotificationsPlugin.zonedSchedule(
           (kadai.id + 1), // notification ID: kadai id + 1 (avoid zero)
-        'カダイの〆切が近いよ！',
-        '${kadai.name} の〆切まであと $notificationTime 分',
+        '課題の〆切が近いです！',
+        '${kadai.name} の〆切まで残り $notificationTime 分',
         tzDT, // changed--<<
         const NotificationDetails(
           android: AndroidNotificationDetails(

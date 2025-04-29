@@ -156,7 +156,7 @@ class _SubmitState extends State<Submit> {
                           color: Colors.black
                         ),
                         decoration: const InputDecoration(
-                          labelText: '提出日    ここから選択 →'
+                          labelText: '〆切       ここから選択 →'
                         ),
                       ),
                     ),
@@ -243,14 +243,20 @@ class _SubmitState extends State<Submit> {
                       child: const Text('トウロク', style: TextStyle(fontSize: 22, color: Colors.indigo)),
                       onPressed:(){
                         FocusScope.of(context).unfocus(); // close keyboard
-                        if (submit.name!=''&&submit.datetime!=''&&submit.area!=''&&submit.format!='') {
+                        if (submit.name!=''&&submit.datetime!='') {
+                          if (submit.area==''){
+                            submit.area='登録なし'; // in case of val was null
+                          }
+                          if (submit.format==''){
+                            submit.format='登録なし';
+                          }
                           saveLocalData(submit);
                           Navigator.pop(context,submit);
                         }else{
                           showDialog(
                               context: context,
                               builder: (context){
-                                return const AlertDialog(title: Text('欄を全て埋めてください', style: TextStyle(fontSize: 18),), alignment: Alignment.center);
+                                return const AlertDialog(title: Text('カダイ名と〆切は必須です', style: TextStyle(fontSize: 18),), alignment: Alignment.center);
                               });
                         }},
                       //splashColor: Colors.white.withOpacity(0.2)//withOpacity:add opacity
