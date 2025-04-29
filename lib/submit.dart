@@ -179,14 +179,14 @@ class _SubmitState extends State<Submit> {
                               setState(() {
                                 _dateController.text = formatter.format(datetime); // give controller a text as String
                                 submit.datetime = _dateController.text;
-                                submit.timestamp = datetime.microsecondsSinceEpoch; // datetime written by int
+                                submit.timestamp = datetime.millisecondsSinceEpoch; // datetime written by int
                               });
                               debugPrint('-- confirm $datetime --');
                             },
                           );
                         },
                         icon: const Icon(
-                          Icons.calendar_month_outlined, size: 30, // I set the icon but the app doesn't show it!!!!!!WHAT!?
+                          Icons.calendar_month_outlined, size: 30,
                         ),
                       ),
                     )
@@ -201,7 +201,6 @@ class _SubmitState extends State<Submit> {
                         height: 80,
                         width: 200,
                         child: TextFormField(
-                          //controller: _controllerone, // // // my settings --- re change this
                           decoration: const InputDecoration(
                               labelText: '提出サキ',
                               hintText: 'Teams, manaba  等'
