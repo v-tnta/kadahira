@@ -44,11 +44,16 @@ Future<void> setupAllNotifications(List<kadaidata> kadaiList) async {
 }
 
 // must need for Android13 or later
-Future<void> requestNotificationPermission() async {
+Future<void> requestPermissions() async {
   if (await Permission.notification.isDenied) {
     await Permission.notification.request();
   }else{
     debugPrint('permitted! - notification -');
+  }
+  if (await Permission.scheduleExactAlarm.isDenied){
+    await Permission.scheduleExactAlarm.request();
+  }else{
+    debugPrint('permitted! - exact alarm-');
   }
 }
 
@@ -115,10 +120,10 @@ void _count_done() async{
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
-  await requestNotificationPermission();
-  await NotificationService.init(); // async --<< if not, cannot trigger Notification Service Functions
   await initializeDateFormatting('ja_JP', '');
   await configureLocalTimeZone();
+  await requestPermissions();
+  await NotificationService.init(); // async --<< if not, cannot trigger Notification Service Functions
 
   runApp(const MyApp());
 }
@@ -165,7 +170,6 @@ class _MyHomePageState extends State<MyHomePage>{
     super.initState();
     loadLocalData(kadaiList);
     setupAllNotifications(kadaiList); // set up notification for the kadai on kadaiList
-
     Timer.periodic(const Duration(seconds: 1), _onTimer); // execute _onTimer for each one second
   }
 

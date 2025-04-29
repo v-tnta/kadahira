@@ -23,13 +23,18 @@ class NotificationService {
     const InitializationSettings initializationSettings =
     InitializationSettings(android: initializationSettingsAndroid);
 
-    await _flutterLocalNotificationsPlugin.initialize(
-        initializationSettings,
-      onDidReceiveNotificationResponse: (NotificationResponse res){
-          debugPrint('tapped! -- notification service --');
-      },
-      onDidReceiveBackgroundNotificationResponse: onDidRBN
-    );
+    try {
+      await _flutterLocalNotificationsPlugin.initialize(
+          initializationSettings,
+          onDidReceiveNotificationResponse: (NotificationResponse res) {
+            debugPrint('tapped! -- notification service --');
+          },
+          onDidReceiveBackgroundNotificationResponse: onDidRBN
+      );
+      debugPrint('init -- notification service --');
+    }catch(e){
+      debugPrint('ERROR: cannot init -- notification service --');
+    }
   }
 
   static Future<int> _getNotificationTime() async {
@@ -51,27 +56,45 @@ class NotificationService {
     }
 
     try{
+      debugPrint('phase1 -- notificS try--');
       tz.TZDateTime tzDT = tz.TZDateTime.from(scheduledTime, tz.local); // teinei coding
+
+      debugPrint('phase2 -- notificS try--');
+      // Check if Android notification channel exists
+      await _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(
+        const AndroidNotificationChannel(
+          'kadai_channel', // チャンネルID
+          'Kadai Notifications', // チャンネル名
+          description: 'notify kadai due datetime',
+          importance: Importance.max
+        )
+      );
+
+      debugPrint('phase3 -- notificS try--');
+      debugPrint('Original time: $scheduledTime, TZ time: $tzDT');
+
       await _flutterLocalNotificationsPlugin.zonedSchedule(
-        kadai.id, // 通知ID: kadaidata.id
+          (kadai.id + 1), // notification ID: kadai id + 1 (avoid zero)
         'カダイの〆切が近いよ！',
         '${kadai.name} の〆切まであと $notificationTime 分',
         tzDT, // changed--<<
         const NotificationDetails(
           android: AndroidNotificationDetails(
-            'kadai_channel', // チャンネルID
-            'Kadai Notifications', // チャンネル名
-            channelDescription: '課題の締切を通知',
+            'kadai_channel',
+            'Kadai Notifications',
+            channelDescription: 'notify kadai due datetime',
             importance: Importance.max,
             priority: Priority.high,
           ),
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        matchDateTimeComponents: DateTimeComponents.dateAndTime,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle
       );
+
       debugPrint('set notification -- notification service --');
     }catch(e){
       debugPrint('ERROR: cannot set notification -- notification service --');
+      debugPrint('$e');
     }
 
   }
