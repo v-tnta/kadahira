@@ -41,9 +41,11 @@ class _SubmitState extends State<Submit> {
   // kadailist class
   kadaidata submit = kadaidata(0, '', '', '', '', 0);
 
-  //DateFomatter
+  // DateFomatter
   DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
-  DateTime dtnow = DateTime.now();
+
+  // DateTime for Date Time picker default
+  DateTime dtdef = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 23, 59);
 
   // TextEditingController を定義して TextField に使う
   final TextEditingController _dateController = TextEditingController();
@@ -170,12 +172,13 @@ class _SubmitState extends State<Submit> {
                             context,
                             showTitleActions: true,
                             minTime: DateTime(2024, 4, 1),
-                            currentTime: DateTime(dtnow.year, dtnow.month, dtnow.day, 23, 59),
+                            currentTime: dtdef,
                             locale: LocaleType.jp,
                             onChanged: (datetime) {
                               debugPrint('change $datetime');
                               },
                             onConfirm: (datetime) {
+                              dtdef=datetime;
                               setState(() {
                                 _dateController.text = formatter.format(datetime); // give controller a text as String
                                 submit.datetime = _dateController.text;

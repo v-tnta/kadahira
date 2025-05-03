@@ -5,6 +5,9 @@
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/> <!-- to aware rebooting-->
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" /> <!-- ~Android 12 -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/> <!-- Android 13+ -->
+    <!-- wake up CPU on Doze mode -->
+    <uses-permission android:name="android.permission.WAKE_LOCK"/> :contentReference[oaicite:6]{index=6}
 
 </manifest>

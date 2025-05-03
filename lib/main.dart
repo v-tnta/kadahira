@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
@@ -181,10 +182,14 @@ class _MyHomePageState extends State<MyHomePage>{
   // Edit Dialog
   Future<void> showEditDialog(BuildContext context, kadaidata poolkadai) async {
     // kadailist class
-    kadaidata editedKadai = kadaidata(
+    kadaidata tmpKadai = kadaidata(
         poolkadai.id, poolkadai.name,
         poolkadai.datetime, poolkadai.area,
         poolkadai.format, poolkadai.timestamp); // otherwise not to set the address of poolkadai
+
+    kadaidata editedKadai = tmpKadai;
+
+    DateTime currentDT = DateTime.fromMillisecondsSinceEpoch(poolkadai.timestamp); // for datetime picker (automatically set current datetime settings)
 
     //controller
     TextEditingController EditFormController = TextEditingController();
@@ -207,21 +212,21 @@ class _MyHomePageState extends State<MyHomePage>{
                           TextFormField(
                             decoration: InputDecoration(labelText: 'カダイの名前', hintText: '${poolkadai.name} (変更なし)'),
                             onChanged: (val){
-                              editedKadai.name=val;
+                              tmpKadai.name=val;
                             },
                           ),
 
                           TextFormField(
                             decoration: InputDecoration(labelText: '提出サキ', hintText: '${poolkadai.area} (変更なし)'),
                             onChanged: (val){
-                              editedKadai.area=val;
+                              tmpKadai.area=val;
                             },
                           ),
 
                           TextFormField(
                               decoration: InputDecoration(labelText: '提出ケイシキ', hintText: '${poolkadai.format} (変更なし)'),
                               onChanged: (val) {
-                                editedKadai.format = val;
+                                tmpKadai.format = val;
                               }
                           ),
 
@@ -246,17 +251,18 @@ class _MyHomePageState extends State<MyHomePage>{
                                 context,
                                 showTitleActions: true,
                                 minTime: DateTime(2024, 4, 1),
-                                currentTime: DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day, 23, 59),
+                                currentTime: currentDT,
                                 locale: LocaleType.jp,
-                                onChanged: (datetime) {
-                                  debugPrint('change $datetime');
+                                onChanged: (val) {
+                                  debugPrint('change $val');
                                 },
-                                onConfirm: (datetime) {
+                                onConfirm: (val){
+                                  currentDT=val;
                                   DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
-                                  EditFormController.text = formatter.format(datetime); // give controller a text as String
-                                  editedKadai.datetime = EditFormController.text;
-                                  editedKadai.timestamp = datetime.millisecondsSinceEpoch; // datetime written by int
-                                  debugPrint('-- confirm $datetime --');
+                                  EditFormController.text = formatter.format(val);
+                                  // give controller a formatted text as String
+                                  tmpKadai.datetime = EditFormController.text;
+                                  tmpKadai.timestamp = val.millisecondsSinceEpoch; // DateTime
                                 },
                               );
                             },
@@ -279,7 +285,15 @@ class _MyHomePageState extends State<MyHomePage>{
                   TextButton(
                     child: const Text('OK'),
                     onPressed: () async{
-                      editLocalData(editedKadai.id, editedKadai);
+
+                      editedKadai.name = tmpKadai.name;
+                      editedKadai.area = tmpKadai.area;
+                      editedKadai.format = tmpKadai.format;
+                      editedKadai.datetime = tmpKadai.datetime;
+                      editedKadai.timestamp = tmpKadai.timestamp;
+
+                      await editLocalData(editedKadai.id, editedKadai);
+
                       await NotificationService.cancelAllNotifications(); // cancel notification
                       await NotificationService.scheduleNotification(editedKadai); // set new notification
                       // setup new notification

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:kadahira/main.dart';
 
 class KdSettings extends StatefulWidget {
   const KdSettings({super.key});
@@ -28,7 +27,7 @@ class _KdSettingsState extends State<KdSettings> {
     setState(() {
       cnt = prefs.getInt('count_easter_egg') ?? 0;
       int? notiTime = prefs.getInt('notification_time');
-      _controller_noti.text = notiTime?.toString() ?? '';
+      _controller_noti.text = notiTime?.toString() ?? '10';
       isSwitch = prefs.getBool('notification_tf') ?? false;
     });
 
@@ -80,7 +79,7 @@ class _KdSettingsState extends State<KdSettings> {
                 const Padding(
                     padding: EdgeInsets.only(top: 20),
                     child: Text(
-                      'カダイがでたらヒラくやつ v1.0',
+                      'カダイがでたらヒラくやつ v1.1',
                       style:
                       TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                     )),
@@ -132,9 +131,11 @@ class _KdSettingsState extends State<KdSettings> {
                                 final prefs = await SharedPreferences.getInstance();
                                 final intVal = int.tryParse(input);
                                 if (intVal != null) {
-                                  await prefs.setInt(
-                                      'notification_time', intVal);
+                                  await prefs.setInt('notification_time', intVal);
                                   debugPrint("notification_time: $intVal");
+                                }else{
+                                  await prefs.setInt('notification_time', 10);
+                                  debugPrint("notification_time: 10");
                                 }
                               }),
                         ),
