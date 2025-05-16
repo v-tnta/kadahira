@@ -42,8 +42,14 @@ class NotificationService {
     return prefs.getInt('notification_time') ?? 10; // default: 10min to go
   }
 
-  static Future<void> scheduleNotification(kadaidata kadai) async {
-    final notificationTime = await _getNotificationTime(); // from shared preferences
+  static Future<void> scheduleNotification(kadaidata kadai, int edited_noti_time) async {
+    int notificationTime = 10; // default setting
+
+    if (edited_noti_time == -1){
+      notificationTime = await _getNotificationTime(); // from shared preferences
+    }else{
+      notificationTime = edited_noti_time; // in case user has edited the notification time
+    }
 
     final scheduledTime = DateTime.fromMillisecondsSinceEpoch(kadai.timestamp)
         .subtract(Duration(minutes: notificationTime));

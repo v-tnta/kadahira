@@ -1,6 +1,5 @@
 import 'dart:async';
-
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
@@ -34,7 +33,7 @@ Future<void> setupAllNotifications(List<kadaidata> kadaiList) async {
     if (notification_tf){ // set notifications by prefs val
       for (final kadai in kadaiList) {
         debugPrint('Setting up notification for: ${kadai.name} (ID: ${kadai.id})');
-        await NotificationService.scheduleNotification(kadai);
+        await NotificationService.scheduleNotification(kadai, -1);
       }
     }else{
       debugPrint('Notifications are disabled');
@@ -155,9 +154,6 @@ class _MyHomePageState extends State<MyHomePage>{
   //initializer
   _MyHomePageState(this.new_kadai);
 
-  // for data saving
-  final shardPreferences = SharedPreferences.getInstance();
-
   // kadaidata instance for data adding
   kadaidata? new_kadai = kadaidata(0, '', '', '', '', 0);
 
@@ -170,7 +166,7 @@ class _MyHomePageState extends State<MyHomePage>{
   void initState() { // execute when app wakeup
     super.initState();
     loadLocalData(kadaiList);
-    setupAllNotifications(kadaiList); // set up notification for the kadai on kadaiList
+    //setupAllNotifications(kadaiList); // set up notification for the kadai on kadaiList
     Timer.periodic(const Duration(seconds: 1), _onTimer); // execute _onTimer for each one second
   }
 
@@ -193,6 +189,11 @@ class _MyHomePageState extends State<MyHomePage>{
 
     //controller
     TextEditingController EditFormController = TextEditingController();
+
+
+    int edited_noti_time = -1;
+    final prefs = await SharedPreferences.getInstance();
+    String notiTime = prefs.getInt('notification_time').toString();
 
     return showDialog<void>(
       context: context,
@@ -232,44 +233,86 @@ class _MyHomePageState extends State<MyHomePage>{
 
                           const SizedBox(height: 20),
 
+                          Row(
+                            children: [
+                              SizedBox( // 制限しないと枠はみ出てエラーる
+                                height: 50,
+                                width: 150,
+                                child: TextField(
+                                  enabled: false, // prohibit input
+                                  controller: EditFormController,
+                                  style: const TextStyle(
+                                      color: Colors.black
+                                  ),
+                                  decoration: const InputDecoration(
+                                      labelText: '〆切'
+                                  ),
+                                ),
+                              ),
 
-                          TextField(
-                            enabled: false, // prohibit input
-                            controller: EditFormController,
-                            style: const TextStyle(
-                                color: Colors.black
-                            ),
-                            decoration: const InputDecoration(
-                                labelText: '〆切'
-                            ),
-                          ),
-
-                          IconButton(
-                            alignment: Alignment.topCenter,
-                            onPressed: () {
-                              DatePicker.showDateTimePicker(
-                                context,
-                                showTitleActions: true,
-                                minTime: DateTime(2024, 4, 1),
-                                currentTime: currentDT,
-                                locale: LocaleType.jp,
-                                onChanged: (val) {
-                                  debugPrint('change $val');
+                              IconButton(
+                                alignment: Alignment.topCenter,
+                                onPressed: () {
+                                  DatePicker.showDateTimePicker(
+                                    context,
+                                    showTitleActions: true,
+                                    minTime: DateTime(2024, 4, 1),
+                                    currentTime: currentDT,
+                                    locale: LocaleType.jp,
+                                    onChanged: (val) {
+                                      debugPrint('change $val');
+                                    },
+                                    onConfirm: (val){
+                                      currentDT=val;
+                                      DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
+                                      EditFormController.text = formatter.format(val);
+                                      // give controller a formatted text as String
+                                      tmpKadai.datetime = EditFormController.text;
+                                      tmpKadai.timestamp = val.millisecondsSinceEpoch; // DateTime
+                                    },
+                                  );
                                 },
-                                onConfirm: (val){
-                                  currentDT=val;
-                                  DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
-                                  EditFormController.text = formatter.format(val);
-                                  // give controller a formatted text as String
-                                  tmpKadai.datetime = EditFormController.text;
-                                  tmpKadai.timestamp = val.millisecondsSinceEpoch; // DateTime
-                                },
-                              );
-                            },
-                            icon: const Icon(
-                              Icons.calendar_month_outlined, size: 30, // I set the icon but the app doesn't show it!!!!!!WHAT!?
-                            ),
+                                icon: const Icon(
+                                  Icons.calendar_month_outlined, size: 30, // I set the icon but the app doesn't show it!!!!!!WHAT!?
+                                ),
+                              ),
+                            ],
                           ),
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  "提出〆切の",
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                                SizedBox(
+                                  width: 80,
+                                  child: TextFormField(
+                                    textAlign: TextAlign.center,
+                                    keyboardType: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly], // allow only digits
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    decoration:  InputDecoration(hintText: '($notiTime)', hintStyle: const TextStyle(color: Colors.grey)),
+                                    onChanged:(val){
+                                      if (val!=null){
+                                        edited_noti_time = int.parse(val);
+                                      }else{
+                                        edited_noti_time = -1;
+                                      }
+                                      debugPrint(' edited_noti_time=$edited_noti_time -- EditForm --');
+                                    },
+                                  ),
+                                ),
+                                const Text(
+                                  "分前",
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                ),
+                                const Text(
+                                  "に通知",
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                              ]
+                          )
                         ]
                     )
                   ),
@@ -292,11 +335,37 @@ class _MyHomePageState extends State<MyHomePage>{
                       editedKadai.datetime = tmpKadai.datetime;
                       editedKadai.timestamp = tmpKadai.timestamp;
 
+                      String dialogmsg = "通知がオフです。ご確認を⚙️\n";
+
+                      if (prefs.getInt('notification_time') == edited_noti_time){
+                        edited_noti_time = -1;
+                      }
+
                       await editLocalData(editedKadai.id, editedKadai);
 
-                      await NotificationService.cancelAllNotifications(); // cancel notification
-                      await NotificationService.scheduleNotification(editedKadai); // set new notification
+                      if (prefs.getBool('notification_tf')==true){
+                        await NotificationService.cancelNotification(tmpKadai.id); // cancel specific notification
+                        await NotificationService.scheduleNotification(editedKadai, edited_noti_time); // set new notification
+                        dialogmsg = "通知を$edited_noti_time分前に変更しました\n";
+                      }
                       // setup new notification
+
+                      debugPrint('edited_noti_time: $edited_noti_time -- showDialog? --');
+
+                      if (edited_noti_time!=-1){
+                        await showDialog(context: context, builder: (BuildContext context) {
+                          return SimpleDialog(
+                              alignment: Alignment.center,
+                              title: Text(
+                                  style: const TextStyle(
+                                      fontSize: 20
+                                  ),
+                                  dialogmsg
+                              )
+                          );
+                        });
+                      }
+
                       setState((){
                         kadaiList = [];
                         loadLocalData(kadaiList);
@@ -331,10 +400,25 @@ class _MyHomePageState extends State<MyHomePage>{
                Icons.settings, size: 30,
              ),
               color: Colors.white,
-              onPressed: ()async{
-               debugPrint('pushed');
-               await Navigator.push(context,MaterialPageRoute(builder: (context) => const KdSettings()));
-               await setupAllNotifications(kadaiList);
+              onPressed: ()async {
+                debugPrint('pushed');
+
+                final prefs = await SharedPreferences.getInstance();
+                bool bfrnoti_tf = prefs.getBool('notification_tf') ?? false;
+                int bfrnoti_time = prefs.getInt('notification_time') ?? 10;
+
+                await Navigator.push(context, MaterialPageRoute(builder: (context) => const KdSettings()));
+
+                bool aftnoti_tf = prefs.getBool('notification_tf') ?? false;
+                int aftnoti_time = prefs.getInt('notification_time') ?? 10;
+
+                // in case
+                if ((bfrnoti_tf == false && aftnoti_tf == true) || // enabled notification
+                    (bfrnoti_tf == true && aftnoti_tf == false) || // disabled notification
+                    ((bfrnoti_tf == true && aftnoti_tf == true) && (bfrnoti_time != aftnoti_time))){ // kept enabled and changed the noti time
+                  await setupAllNotifications(kadaiList);
+                } // else : kept disabled notification (no matter whether noti time changed or not.) or kept enabled and noti time hasn't changed.
+
               }
             )
           ],
@@ -383,8 +467,10 @@ class _MyHomePageState extends State<MyHomePage>{
                         );
 
                         if(new_kadai!=null){
-                          await NotificationService.scheduleNotification(new_kadai!);
-                          // set notification
+                          final prefs = await SharedPreferences.getInstance();
+                          if (prefs.getBool('notification_tf')==true) {
+                            NotificationService.scheduleNotification(new_kadai!,-1);
+                          }// set notification
 
                           setState((){
                             kadaiList.add(new_kadai!);
