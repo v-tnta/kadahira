@@ -20,8 +20,20 @@ class NotificationService {
   static Future<void> init() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
     AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    // iOS用の初期化設定を追加
+    const DarwinInitializationSettings initializationSettingsIOS =
+    DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false, // 許可用のコードをAppDelegateに宣言済みのため、許可どりの重複を避ける
+    );
+
     const InitializationSettings initializationSettings =
-    InitializationSettings(android: initializationSettingsAndroid);
+    InitializationSettings(
+        android: initializationSettingsAndroid,
+        iOS: initializationSettingsIOS // iOS設定
+    );
 
     try {
       await _flutterLocalNotificationsPlugin.initialize(
