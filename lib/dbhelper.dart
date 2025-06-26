@@ -27,8 +27,9 @@ class DatabaseHelper {
     // データベースを開き、存在しない場合は作成
     return await openDatabase(
       path,
-      version: 1,
+      version: 2, // ★ バージョンを2に更新
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade, // ★ onUpgradeコールバックを追加
     );
   }
 
@@ -41,10 +42,20 @@ class DatabaseHelper {
         datetime TEXT,
         area TEXT,
         format TEXT,
-        timestamp INTEGER
+        timestamp INTEGER,
+        notibefore INTEGER
       )
-    ''');
+    '''); // ★ notibeforeカラムを追加
   }
+
+  // ★ データベースのマイグレーション処理を追加
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // version 1 -> 2: notibeforeカラムを追加し、デフォルト値を10に設定
+      await db.execute("ALTER TABLE records ADD COLUMN notibefore INTEGER DEFAULT 10");
+    }
+  }
+
 
   // データの挿入
   Future<int> insertRecord(Map<String, dynamic> record) async {
@@ -66,9 +77,9 @@ class DatabaseHelper {
     final db = await database;
 
     return await
-      db.update('records', record,
-          where: 'id = ?',      // 条件を指定（idが一致するレコード）
-          whereArgs: [id]);
+    db.update('records', record,
+        where: 'id = ?',      // 条件を指定（idが一致するレコード）
+        whereArgs: [id]);
   }
 
   // 全データの取得

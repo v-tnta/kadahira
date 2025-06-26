@@ -6,8 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'kadaidata.dart';
 import 'dbhelper.dart';
 
-// pubspec.yaml was incorrect!!!
-
 // SaveData
 Future<void> saveLocalData(kadaidata submit) async {
   DatabaseHelper dbHelper = DatabaseHelper();
@@ -17,6 +15,7 @@ Future<void> saveLocalData(kadaidata submit) async {
     'area': submit.area,
     'format': submit.format,
     'timestamp': submit.timestamp,
+    'notibefore': submit.notibefore, // ★ 追加
   };
   await dbHelper.insertRecord(record).then((id) { // then contains the return value
     submit.id=id;
@@ -34,12 +33,11 @@ class Submit extends StatefulWidget {
 }
 
 class _SubmitState extends State<Submit> {
-
   // for data saving
   final shardPreferences = SharedPreferences.getInstance();
 
-  // kadailist class
-  kadaidata submit = kadaidata(0, '', '', '', '', 0);
+  // ★ 初期値としてデフォルト通知時間を設定
+  late kadaidata submit;
 
   // DateFomatter
   DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
@@ -53,18 +51,27 @@ class _SubmitState extends State<Submit> {
   final TextEditingController _controllerone = TextEditingController();
   final TextEditingController _controllertwo = TextEditingController();
 
-
   @override
-  void initState() { // execute when app wakeup
+  void initState() {
     super.initState();
-    Timer.periodic(const Duration(seconds: 1), _onTimer); // execute _onTimer for each one second
-    // 初期値を設定
+    _initializeSubmitData();
+    Timer.periodic(const Duration(seconds: 1), _onTimer);
     _controllerone.text = '0';
     _controllertwo.text = '1';
   }
 
+  // ★ SharedPreferencesからデフォルト通知時間を読み込み、kadaidataを初期化する
+  Future<void> _initializeSubmitData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final defaultNotiTime = prefs.getInt('notification_time') ?? 10;
+    setState(() {
+      submit = kadaidata(0, '', '', '', '', 0, defaultNotiTime);
+    });
+  }
+
+
   void _onTimer(Timer timer) {
-    if (mounted){ // avoid calling _ontimer after executing dispose()
+    if (mounted){
       setState((){
         DateFormat('HH:mm:ss').format(DateTime.now());
       });
@@ -238,22 +245,22 @@ class _SubmitState extends State<Submit> {
 
                 Material(
                   child: Container(
-                    decoration: BoxDecoration( // BoxDecorationで角丸に
+                    decoration: BoxDecoration(
                       border: Border.all(color: Colors.black87, width: 3),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child:TextButton(
                       child: const Text('トウロク', style: TextStyle(fontSize: 22, color: Colors.indigo)),
                       onPressed:(){
-                        FocusScope.of(context).unfocus(); // close keyboard
+                        FocusScope.of(context).unfocus();
                         if (submit.name!=''&&submit.datetime!='') {
                           if (submit.area==''){
-                            submit.area='登録なし'; // in case of val was null
+                            submit.area='登録なし';
                           }
                           if (submit.format==''){
                             submit.format='登録なし';
                           }
-                          saveLocalData(submit);
+                          saveLocalData(submit); // ★ notibeforeを含んだsubmitが保存される
                           Navigator.pop(context,submit);
                         }else{
                           showDialog(
@@ -262,7 +269,6 @@ class _SubmitState extends State<Submit> {
                                 return const AlertDialog(title: Text('カダイ名と〆切は必須です', style: TextStyle(fontSize: 18),), alignment: Alignment.center);
                               });
                         }},
-                      //splashColor: Colors.white.withOpacity(0.2)//withOpacity:add opacity
                     ),
                   ),
                 ),

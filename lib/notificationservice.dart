@@ -49,76 +49,62 @@ class NotificationService {
     }
   }
 
+  // ★ このメソッドは直接使用されなくなりますが、他の機能で参照される可能性を考慮して残します。
   static Future<int> _getNotificationTime() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('notification_time') ?? 10; // default: 10min to go
+    return prefs.getInt('notification_time') ?? 10;
   }
 
-  static Future<void> scheduleNotification(kadaidata kadai, int edited_noti_time) async {
-    int notificationTime = 10; // default setting
-
-    if (edited_noti_time == -1){
-      notificationTime = await _getNotificationTime(); // from shared preferences
-    }else{
-      notificationTime = edited_noti_time; // in case user has edited the notification time
-    }
+  // ★ 引数からedited_noti_timeを削除
+  static Future<void> scheduleNotification(kadaidata kadai) async {
+    // ★ kadaiオブジェクトのnotibeforeを直接使用
+    final int notificationTime = kadai.notibefore;
 
     final scheduledTime = DateTime.fromMillisecondsSinceEpoch(kadai.timestamp)
         .subtract(Duration(minutes: notificationTime));
 
-    debugPrint('scheduled time is: $scheduledTime -- notification service --');
+    debugPrint('scheduled time is: $scheduledTime for kadai ${kadai.name} using notibefore: ${kadai.notibefore} -- notification service --');
 
-    // 過去の課題はスキップ
     if (scheduledTime.isBefore(DateTime.now())) {
       return;
     }
 
-    try{
-      debugPrint('phase1 -- notificS try--');
-      tz.TZDateTime tzDT = tz.TZDateTime.from(scheduledTime, tz.local); // teinei coding
+    try {
+      tz.TZDateTime tzDT = tz.TZDateTime.from(scheduledTime, tz.local);
 
-      debugPrint('phase2 -- notificS try--');
-      // Check if Android notification channel exists
-      await _flutterLocalNotificationsPlugin.resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>()?.createNotificationChannel(
-        const AndroidNotificationChannel(
-          'kadai_channel', // チャンネルID
-          'Kadai Notifications', // チャンネル名
+      await _flutterLocalNotificationsPlugin
+          .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(const AndroidNotificationChannel(
+          'kadai_channel', 'Kadai Notifications',
           description: 'notify kadai due datetime',
-          importance: Importance.max
-        )
-      );
-
-      debugPrint('phase3 -- notificS try--');
-      debugPrint('Original time: $scheduledTime, TZ time: $tzDT');
+          importance: Importance.max));
 
       await _flutterLocalNotificationsPlugin.zonedSchedule(
-          (kadai.id + 1), // notification ID: kadai id + 1 (avoid zero)
-        '課題の〆切が近いです！',
-        '${kadai.name} の〆切まで残り $notificationTime 分',
-        tzDT, // changed--<<
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'kadai_channel',
-            'Kadai Notifications',
-            channelDescription: 'notify kadai due datetime',
-            importance: Importance.max,
-            priority: Priority.high,
+          (kadai.id + 1),
+          '課題の〆切が近いです！',
+          '${kadai.name} の〆切まで残り $notificationTime 分', // ★ 正しい分数を表示
+          tzDT,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'kadai_channel',
+              'Kadai Notifications',
+              channelDescription: 'notify kadai due datetime',
+              importance: Importance.max,
+              priority: Priority.high,
+            ),
           ),
-        ),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle
-      );
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle);
 
       debugPrint('set notification -- notification service --');
-    }catch(e){
+    } catch (e) {
       debugPrint('ERROR: cannot set notification -- notification service --');
       debugPrint('$e');
     }
-
   }
 
   static Future<void> cancelNotification(int id) async {
-    await _flutterLocalNotificationsPlugin.cancel(id);
+    await _flutterLocalNotificationsPlugin.cancel(id + 1); // ★ IDを合わせる
   }
 
   static Future<void> cancelAllNotifications() async {

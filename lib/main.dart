@@ -20,25 +20,23 @@ import 'package:kadahira/submit.dart';
 import 'package:kadahira/notificationservice.dart';
 import 'package:kadahira/responsive_helper.dart';
 
-//// notification  ////
-
 Future<void> setupAllNotifications(List<kadaidata> kadaiList) async {
   final prefs = await SharedPreferences.getInstance();
-  final notification_tf = await prefs.getBool('notification_tf') ?? false; // teinei coding (null→false)
+  final notification_tf = await prefs.getBool('notification_tf') ?? false;
 
-  try{
+  try {
     await NotificationService.cancelAllNotifications();
-    // anyway delete all notification at first
 
-    if (notification_tf){ // set notifications by prefs val
+    if (notification_tf) {
       for (final kadai in kadaiList) {
         debugPrint('Setting up notification for: ${kadai.name} (ID: ${kadai.id})');
-        await NotificationService.scheduleNotification(kadai, -1);
+        // ★ 引数をkadaiオブジェクトのみに変更
+        await NotificationService.scheduleNotification(kadai);
       }
-    }else{
+    } else {
       debugPrint('Notifications are disabled');
     }
-  }catch (e){
+  } catch (e) {
     debugPrint('ERROR: setupAllNotifications');
   }
 }
@@ -75,9 +73,10 @@ Future<void> editLocalData(int id, kadaidata editedKadai) async {
     'area': editedKadai.area,
     'format': editedKadai.format,
     'timestamp': editedKadai.timestamp,
+    'notibefore': editedKadai.notibefore, // ★ 追加
   };
   await dbHelper.editRecord(id, record).then((rowsDeleted) {}).catchError((error) {
-    debugPrint('----debugPrint----Error deleting record: $error----');
+    debugPrint('----debugPrint----Error editing record: $error----');
   });
 }
 
@@ -134,89 +133,62 @@ void main() async{
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
-
     return const MaterialApp(
-      debugShowCheckedModeBanner: false, // remove debug banner
+      debugShowCheckedModeBanner: false,
       home: MyHomePage(title: 'カダヒラ'),
     );
   }
 }
 
-
-class MyHomePage extends StatefulWidget{
+class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
   final String title;
-
   @override
-  State<MyHomePage> createState() => _MyHomePageState(); // ★ kadaidataの初期化を削除
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
-
-class _MyHomePageState extends State<MyHomePage>{
-
-  // kadaidata instance for data adding
-  kadaidata? new_kadai = kadaidata(0, '', '', '', '', 0);
-
-  // ★ このリストはFutureBuilderが管理するので、ここでは宣言のみ
+class _MyHomePageState extends State<MyHomePage> {
+  kadaidata? new_kadai;
   List<kadaidata> kadaiList = [];
-  kadaidata poolkadai = kadaidata(0, '', '', '', '', 0);
-
-  // ★ このStateで非同期処理を管理するためのFutureを定義
+  late kadaidata poolkadai;
   late Future<List<kadaidata>> _kadaiListFuture;
 
-
   @override
-  void initState() { // execute when app wakeup
+  void initState() {
     super.initState();
-    // ★ initStateでは、Futureをセットするだけ
     _kadaiListFuture = loadLocalData();
-    // Timer.periodicはUI更新のためそのまま
     Timer.periodic(const Duration(seconds: 1), _onTimer);
   }
 
   void _onTimer(Timer timer) {
-    // 1秒ごとにsetStateを呼び出し、時計を更新する
-    if (mounted) { // ★ Stateが存在する場合のみsetStateを呼ぶように修正
-      setState((){});
+    if (mounted) {
+      setState(() {});
     }
   }
-
-  // Edit Dialog
   Future<void> showEditDialog(BuildContext context, kadaidata poolkadai) async {
+    // ★ notibeforeをコピー
     kadaidata tmpKadai = kadaidata(
         poolkadai.id, poolkadai.name,
         poolkadai.datetime, poolkadai.area,
-        poolkadai.format, poolkadai.timestamp
+        poolkadai.format, poolkadai.timestamp, poolkadai.notibefore
     );
 
-    kadaidata editedKadai = new kadaidata(tmpKadai.id, tmpKadai.name, tmpKadai.datetime, tmpKadai.area, tmpKadai.format, tmpKadai.timestamp);
-
+    kadaidata editedKadai = kadaidata(tmpKadai.id, tmpKadai.name, tmpKadai.datetime, tmpKadai.area, tmpKadai.format, tmpKadai.timestamp, tmpKadai.notibefore);
 
     DateTime currentDT = DateTime.fromMillisecondsSinceEpoch(poolkadai.timestamp);
-
     TextEditingController EditFormController = TextEditingController();
 
-
-    int edited_noti_time = -1;
+    int edited_noti_time = -1; // ユーザーが入力した値を一時的に保持
     final prefs = await SharedPreferences.getInstance();
-
-    int? notiTimeRaw = prefs.getInt('notification_time');
-    String notiTime = "10"; // init value
-    if (notiTimeRaw != null){
-      notiTime = notiTimeRaw.toString(); // for editForm
-    }
 
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return GestureDetector(
-            onTap: () {
-              FocusScope.of(context).unfocus();
-            },
-            child:AlertDialog(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: AlertDialog(
               title: const Text('データを編集'),
               content: SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
@@ -304,12 +276,13 @@ class _MyHomePageState extends State<MyHomePage>{
                                   textAlign: TextAlign.center,
                                   keyboardType: TextInputType.number,
                                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize:16), fontWeight: FontWeight.bold),
-                                  decoration:  InputDecoration(hintText: '($notiTime)', hintStyle: const TextStyle(color: Colors.grey)),
-                                  onChanged:(val){
-                                    if (val.isNotEmpty){
+                                  style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize: 16), fontWeight: FontWeight.bold),
+                                  // ★ 初期値として個別のnotibeforeを表示
+                                  decoration: InputDecoration(hintText: '(${poolkadai.notibefore})', hintStyle: const TextStyle(color: Colors.grey)),
+                                  onChanged: (val) {
+                                    if (val.isNotEmpty) {
                                       edited_noti_time = int.parse(val);
-                                    }else{
+                                    } else {
                                       edited_noti_time = -1;
                                     }
                                     debugPrint(' edited_noti_time=$edited_noti_time -- EditForm --');
@@ -318,11 +291,11 @@ class _MyHomePageState extends State<MyHomePage>{
                               ),
                               Text(
                                 "分前",
-                                style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize:14), fontWeight: FontWeight.bold),
+                                style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize: 14), fontWeight: FontWeight.bold),
                               ),
                               Text(
                                 "に通知",
-                                style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize:14)),
+                                style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize: 14)),
                               ),
                             ]
                         )
@@ -333,63 +306,54 @@ class _MyHomePageState extends State<MyHomePage>{
               actions: <Widget>[
                 TextButton(
                   child: const Text('キャンセル'),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
-
                 TextButton(
                   child: const Text('OK'),
-                  onPressed: () async{
+                  onPressed: () async {
+                    // ★ 変更検知ロジックを更新
+                    final bool isDateTimeChanged = tmpKadai.timestamp != poolkadai.timestamp;
+                    final bool isNotiTimeChanged = edited_noti_time != -1 && edited_noti_time != poolkadai.notibefore;
 
-                    bool isDateTimeChanged = false;
-                    if (editedKadai.timestamp != poolkadai.timestamp){
-                      isDateTimeChanged=true;
-                    }
-
-                    // updating editedKadai
                     editedKadai.name = tmpKadai.name.isEmpty ? poolkadai.name : tmpKadai.name;
                     editedKadai.area = tmpKadai.area.isEmpty ? poolkadai.area : tmpKadai.area;
                     editedKadai.format = tmpKadai.format.isEmpty ? poolkadai.format : tmpKadai.format;
                     editedKadai.datetime = tmpKadai.datetime.isEmpty ? poolkadai.datetime : tmpKadai.datetime;
                     editedKadai.timestamp = tmpKadai.timestamp == 0 ? poolkadai.timestamp : tmpKadai.timestamp;
+                    // ★ notibeforeを更新
+                    editedKadai.notibefore = isNotiTimeChanged ? edited_noti_time : poolkadai.notibefore;
 
-                    String dialogmsg = "通知がオフです。ご確認を⚙️\n";
+                    String dialogmsg = "";
+                    bool showMsg = false;
 
-                    await editLocalData(editedKadai.id, editedKadai); // updating KadaiList
+                    await editLocalData(editedKadai.id, editedKadai);
 
-                    if (prefs.getInt('notification_time') == edited_noti_time){ // edited_noti 変更なしなら
-                      edited_noti_time = -1;
-                    }
-
-                    if (isDateTimeChanged || (prefs.getInt('notification_time') != edited_noti_time)){ // 日時が変更 OR 通知時間が変更された場合
-                      if (prefs.getBool('notification_tf')==true){
+                    // ★ 通知再設定ロジックを更新
+                    if (isDateTimeChanged || isNotiTimeChanged) {
+                      if (await prefs.getBool('notification_tf') ?? false) {
                         await NotificationService.cancelNotification(editedKadai.id);
-                        await NotificationService.scheduleNotification(editedKadai, edited_noti_time);
-
-                        if (isDateTimeChanged){
-                          dialogmsg = "連動して通知時間も変更しました\n";
+                        await NotificationService.scheduleNotification(editedKadai);
+                        showMsg = true;
+                        if (isDateTimeChanged && isNotiTimeChanged) {
+                          dialogmsg = "日時と通知時間を変更しました\n";
+                        } else if (isDateTimeChanged) {
+                          dialogmsg = "日時を更新し、通知を再設定しました\n";
+                        } else if (isNotiTimeChanged) {
+                          dialogmsg = "通知を${editedKadai.notibefore}分前に変更しました\n";
                         }
-                        if (prefs.getInt('notification_time') != edited_noti_time){
-                          dialogmsg = "通知を$edited_noti_time分前に変更しました\n";
-                        }
-
-                        if (isDateTimeChanged){
-                          dialogmsg = "通知時間を変更しました\n通知を$edited_noti_time分前に変更しました";
-                        }
+                      }else if (isNotiTimeChanged){
+                        showMsg = true;
+                        dialogmsg = "通知を${editedKadai.notibefore}分前に変更しました\n通知がオフです⚙️ ご確認を\n";
                       }
                     }
 
-
-                    debugPrint('edited_noti_time: $edited_noti_time -- showDialog? --');
-
-                    if (edited_noti_time!=-1){
+                    if (showMsg) {
                       await showDialog(context: context, builder: (BuildContext context) {
                         return SimpleDialog(
                             alignment: Alignment.center,
                             title: Text(
                                 style: TextStyle(
-                                    fontSize: getResponsiveFontSize(context, baseFontSize:20)
+                                    fontSize: getResponsiveFontSize(context, baseFontSize: 20)
                                 ),
                                 dialogmsg
                             )
@@ -397,8 +361,7 @@ class _MyHomePageState extends State<MyHomePage>{
                       });
                     }
 
-                    // ★ データを再読み込みしてUIを更新
-                    setState((){
+                    setState(() {
                       _kadaiListFuture = loadLocalData();
                       Navigator.of(context).pop();
                     });
@@ -449,12 +412,12 @@ class _MyHomePageState extends State<MyHomePage>{
                   bool aftnoti_tf = prefs.getBool('notification_tf') ?? false;
                   int aftnoti_time = prefs.getInt('notification_time') ?? 10;
 
-                  if (
-                        (bfrnoti_tf == false && aftnoti_tf == true) ||
-                        (bfrnoti_tf == true && aftnoti_tf == false) ||
-                        ((bfrnoti_tf == true && aftnoti_tf == true) && (bfrnoti_time != aftnoti_time))
-                  ){
-                    await setupAllNotifications(kadaiList); // ★ kadaiListはFutureBuilderから渡されたものを使用
+                  if ((bfrnoti_tf != aftnoti_tf) || (bfrnoti_tf && aftnoti_tf && bfrnoti_time != aftnoti_time)) {
+                    // ★ 全ての課題のnotibeforeを更新する必要があるか検討
+                    // 現状では、設定画面の変更は新規作成時のデフォルト値にのみ影響し、
+                    // 既存の課題のnotibeforeは変更しない仕様。
+                    // 全通知の再設定のみ行う。
+                    await setupAllNotifications(kadaiList);
                   }
                 }
             )
@@ -520,10 +483,11 @@ class _MyHomePageState extends State<MyHomePage>{
                                     MaterialPageRoute(builder: (context)=> const Submit())
                                 );
 
-                                if(new_kadai!=null){
+                                if(new_kadai != null){
                                   final prefs = await SharedPreferences.getInstance();
-                                  if (prefs.getBool('notification_tf')==true) {
-                                    NotificationService.scheduleNotification(new_kadai!,-1);
+                                  if (prefs.getBool('notification_tf') ?? false) {
+                                    // ★ 引数をnew_kadaiオブジェクトのみに変更
+                                    await NotificationService.scheduleNotification(new_kadai!);
                                   }
                                   // ★ データを再読み込みしてUIを更新
                                   setState((){
