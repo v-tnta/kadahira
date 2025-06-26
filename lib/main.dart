@@ -12,7 +12,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
-
 import 'package:kadahira/settings.dart';
 import 'package:kadahira/dbhelper.dart';
 import 'package:kadahira/kadaidata.dart';

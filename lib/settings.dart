@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class KdSettings extends StatefulWidget {
   const KdSettings({super.key});
-
   @override
   State<KdSettings> createState() => _KdSettingsState();
 }
