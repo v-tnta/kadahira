@@ -23,7 +23,6 @@ dependencies:
   flutter_timezone: ^4.1.0
   permission_handler: ^12.0.0+1
   timezone: ^0.10.0
-
 #dependency_overrides:
 #  path_provider:
 #    git:
@@ -36,7 +35,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
+  flutter_launcher_icons: ^0.14.4
   flutter_lints: ^3.0.0
 
 flutter:
@@ -51,3 +50,9 @@ flutter_icons:
   android: true
   adaptive_icon_background: "assets/images/kadahira-logo-v2.png"
   adaptive_icon_foreground: "assets/images/kadahira-logo-v2.png"
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/kadahira-logo-v2.png" # あなたが用意したアイコン画像のパス
+  min_sdk_android: 21 # アプリの最小SDKバージョン（通常は21でOK）

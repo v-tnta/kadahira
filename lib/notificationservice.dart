@@ -19,7 +19,7 @@ class NotificationService {
 
   static Future<void> init() async {
     const AndroidInitializationSettings initializationSettingsAndroid =
-    AndroidInitializationSettings('@mipmap/ic_launcher');
+    AndroidInitializationSettings('@drawable/ic_kadahira_icon');
 
     // iOS用の初期化設定を追加
     const DarwinInitializationSettings initializationSettingsIOS =
