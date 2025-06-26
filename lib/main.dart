@@ -88,19 +88,23 @@ Future<void> deleteLocalData(int id) async {
   });
 }
 
-Future<void> loadLocalData(List<kadaidata> kadaiList) async {
+// ★ 引数をなくし、Future<List<kadaidata>> を返すように変更
+Future<List<kadaidata>> loadLocalData() async {
   DatabaseHelper dbHelper = DatabaseHelper();
-  // データベースからすべてのレコードを取得し、kadaidataリストに変換して格納
-  await dbHelper.getAllRecords().then((List<Map<String, dynamic>> records) {
-    // 取得したレコードをkadaidataリストに変換して追加
+  List<kadaidata> kadaiList = []; // この関数内でリストを作成
+  try {
+    List<Map<String, dynamic>> records = await dbHelper.getAllRecords();
     for (var record in records) {
       kadaiList.add(kadaidata.fromMap(record));
     }
     kadaiList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-  }).catchError((error) {
+    return kadaiList; // データを返す
+  } catch (error) {
     debugPrint('Error loading records: $error');
-  });
+    return []; // エラーの場合は空のリストを返す
+  }
 }
+
 
 ////   others   ////
 
@@ -133,6 +137,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return const MaterialApp(
       debugShowCheckedModeBanner: false, // remove debug banner
       home: MyHomePage(title: 'カダヒラ'),
@@ -146,48 +151,52 @@ class MyHomePage extends StatefulWidget{
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState(kadaidata(0,'','','','', 0));
+  State<MyHomePage> createState() => _MyHomePageState(); // ★ kadaidataの初期化を削除
 }
 
 
 class _MyHomePageState extends State<MyHomePage>{
-  //initializer
-  _MyHomePageState(this.new_kadai);
 
   // kadaidata instance for data adding
   kadaidata? new_kadai = kadaidata(0, '', '', '', '', 0);
 
-  // List for kadai list below the button
+  // ★ このリストはFutureBuilderが管理するので、ここでは宣言のみ
   List<kadaidata> kadaiList = [];
   kadaidata poolkadai = kadaidata(0, '', '', '', '', 0);
+
+  // ★ このStateで非同期処理を管理するためのFutureを定義
+  late Future<List<kadaidata>> _kadaiListFuture;
 
 
   @override
   void initState() { // execute when app wakeup
     super.initState();
-    loadLocalData(kadaiList);
-    //setupAllNotifications(kadaiList); // set up notification for the kadai on kadaiList
-    Timer.periodic(const Duration(seconds: 1), _onTimer); // execute _onTimer for each one second
+    // ★ initStateでは、Futureをセットするだけ
+    _kadaiListFuture = loadLocalData();
+    // Timer.periodicはUI更新のためそのまま
+    Timer.periodic(const Duration(seconds: 1), _onTimer);
   }
 
   void _onTimer(Timer timer) {
-    DateFormat('HH:mm:ss').format(DateTime.now()); // Substitute new_Time for the value of current Date and Time()
-    setState((){}); // every one second, trigger setState
+    // 1秒ごとにsetStateを呼び出し、時計を更新する
+    if (mounted) { // ★ Stateが存在する場合のみsetStateを呼ぶように修正
+      setState((){});
+    }
   }
 
   // Edit Dialog
   Future<void> showEditDialog(BuildContext context, kadaidata poolkadai) async {
-    // kadailist class
+    // ... (この関数の中身は変更なし) ...
+    // ただし、最後のsetStateの中身を修正します。
     kadaidata tmpKadai = kadaidata(
         poolkadai.id, poolkadai.name,
         poolkadai.datetime, poolkadai.area,
-        poolkadai.format, poolkadai.timestamp); // otherwise not to set the address of poolkadai
+        poolkadai.format, poolkadai.timestamp);
 
     kadaidata editedKadai = tmpKadai;
 
-    DateTime currentDT = DateTime.fromMillisecondsSinceEpoch(poolkadai.timestamp); // for datetime picker (automatically set current datetime settings)
+    DateTime currentDT = DateTime.fromMillisecondsSinceEpoch(poolkadai.timestamp);
 
-    //controller
     TextEditingController EditFormController = TextEditingController();
 
 
@@ -200,181 +209,178 @@ class _MyHomePageState extends State<MyHomePage>{
       builder: (BuildContext context) {
         return GestureDetector(
             onTap: () {
-              FocusScope.of(context).unfocus(); // close keyboard etc when tap on un focus area
+              FocusScope.of(context).unfocus();
             },
             child:AlertDialog(
-                title: const Text('データを編集'),
-                  content: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
+              title: const Text('データを編集'),
+              content: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
 
-                          TextFormField(
-                            decoration: InputDecoration(labelText: 'カダイの名前', hintText: '${poolkadai.name} (変更なし)'),
-                            onChanged: (val){
-                              tmpKadai.name=val;
-                            },
-                          ),
+                        TextFormField(
+                          decoration: InputDecoration(labelText: 'カダイの名前', hintText: '${poolkadai.name} (変更なし)'),
+                          onChanged: (val){
+                            tmpKadai.name=val;
+                          },
+                        ),
 
-                          TextFormField(
-                            decoration: InputDecoration(labelText: '提出サキ', hintText: '${poolkadai.area} (変更なし)'),
-                            onChanged: (val){
-                              tmpKadai.area=val;
-                            },
-                          ),
+                        TextFormField(
+                          decoration: InputDecoration(labelText: '提出サキ', hintText: '${poolkadai.area} (変更なし)'),
+                          onChanged: (val){
+                            tmpKadai.area=val;
+                          },
+                        ),
 
-                          TextFormField(
-                              decoration: InputDecoration(labelText: '提出ケイシキ', hintText: '${poolkadai.format} (変更なし)'),
-                              onChanged: (val) {
-                                tmpKadai.format = val;
-                              }
-                          ),
+                        TextFormField(
+                            decoration: InputDecoration(labelText: '提出ケイシキ', hintText: '${poolkadai.format} (変更なし)'),
+                            onChanged: (val) {
+                              tmpKadai.format = val;
+                            }
+                        ),
 
-                          const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                          Row(
+                        Row(
+                          children: [
+                            SizedBox(
+                              height: 50,
+                              width: 150,
+                              child: TextField(
+                                enabled: false,
+                                controller: EditFormController,
+                                style: const TextStyle(
+                                    color: Colors.black
+                                ),
+                                decoration: const InputDecoration(
+                                    labelText: '〆切'
+                                ),
+                              ),
+                            ),
+
+                            IconButton(
+                              alignment: Alignment.topCenter,
+                              onPressed: () {
+                                DatePicker.showDateTimePicker(
+                                  context,
+                                  showTitleActions: true,
+                                  minTime: DateTime(2024, 4, 1),
+                                  currentTime: currentDT,
+                                  locale: LocaleType.jp,
+                                  onChanged: (val) {
+                                    debugPrint('change $val');
+                                  },
+                                  onConfirm: (val){
+                                    currentDT=val;
+                                    DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
+                                    EditFormController.text = formatter.format(val);
+                                    tmpKadai.datetime = EditFormController.text;
+                                    tmpKadai.timestamp = val.millisecondsSinceEpoch;
+                                  },
+                                );
+                              },
+                              icon: const Icon(
+                                Icons.calendar_month_outlined, size: 30,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              SizedBox( // 制限しないと枠はみ出てエラーる
-                                height: 50,
-                                width: 150,
-                                child: TextField(
-                                  enabled: false, // prohibit input
-                                  controller: EditFormController,
-                                  style: const TextStyle(
-                                      color: Colors.black
-                                  ),
-                                  decoration: const InputDecoration(
-                                      labelText: '〆切'
-                                  ),
+                              const Text(
+                                "提出〆切の",
+                                style: TextStyle(fontSize: 14),
+                              ),
+                              SizedBox(
+                                width: 80,
+                                child: TextFormField(
+                                  textAlign: TextAlign.center,
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  decoration:  InputDecoration(hintText: '($notiTime)', hintStyle: const TextStyle(color: Colors.grey)),
+                                  onChanged:(val){
+                                    if (val.isNotEmpty){
+                                      edited_noti_time = int.parse(val);
+                                    }else{
+                                      edited_noti_time = -1;
+                                    }
+                                    debugPrint(' edited_noti_time=$edited_noti_time -- EditForm --');
+                                  },
                                 ),
                               ),
-
-                              IconButton(
-                                alignment: Alignment.topCenter,
-                                onPressed: () {
-                                  DatePicker.showDateTimePicker(
-                                    context,
-                                    showTitleActions: true,
-                                    minTime: DateTime(2024, 4, 1),
-                                    currentTime: currentDT,
-                                    locale: LocaleType.jp,
-                                    onChanged: (val) {
-                                      debugPrint('change $val');
-                                    },
-                                    onConfirm: (val){
-                                      currentDT=val;
-                                      DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
-                                      EditFormController.text = formatter.format(val);
-                                      // give controller a formatted text as String
-                                      tmpKadai.datetime = EditFormController.text;
-                                      tmpKadai.timestamp = val.millisecondsSinceEpoch; // DateTime
-                                    },
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.calendar_month_outlined, size: 30, // I set the icon but the app doesn't show it!!!!!!WHAT!?
-                                ),
+                              const Text(
+                                "分前",
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                               ),
-                            ],
-                          ),
-                          Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  "提出〆切の",
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                                SizedBox(
-                                  width: 80,
-                                  child: TextFormField(
-                                    textAlign: TextAlign.center,
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly], // allow only digits
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                    decoration:  InputDecoration(hintText: '($notiTime)', hintStyle: const TextStyle(color: Colors.grey)),
-                                    onChanged:(val){
-                                      if (val!=null){
-                                        edited_noti_time = int.parse(val);
-                                      }else{
-                                        edited_noti_time = -1;
-                                      }
-                                      debugPrint(' edited_noti_time=$edited_noti_time -- EditForm --');
-                                    },
-                                  ),
-                                ),
-                                const Text(
-                                  "分前",
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                ),
-                                const Text(
-                                  "に通知",
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ]
-                          )
-                        ]
-                    )
-                  ),
+                              const Text(
+                                "に通知",
+                                style: TextStyle(fontSize: 14),
+                              ),
+                            ]
+                        )
+                      ]
+                  )
+              ),
 
-                actions: <Widget>[
-                  TextButton(
-                    child: const Text('キャンセル'),
-                    onPressed: () {
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('キャンセル'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () async{
+
+                    editedKadai.name = tmpKadai.name.isEmpty ? poolkadai.name : tmpKadai.name;
+                    editedKadai.area = tmpKadai.area.isEmpty ? poolkadai.area : tmpKadai.area;
+                    editedKadai.format = tmpKadai.format.isEmpty ? poolkadai.format : tmpKadai.format;
+                    editedKadai.datetime = tmpKadai.datetime.isEmpty ? poolkadai.datetime : tmpKadai.datetime;
+                    editedKadai.timestamp = tmpKadai.timestamp == 0 ? poolkadai.timestamp : tmpKadai.timestamp;
+
+                    String dialogmsg = "通知がオフです。ご確認を⚙️\n";
+
+                    if (prefs.getInt('notification_time') == edited_noti_time){
+                      edited_noti_time = -1;
+                    }
+
+                    await editLocalData(editedKadai.id, editedKadai);
+
+                    if (prefs.getBool('notification_tf')==true){
+                      await NotificationService.cancelNotification(tmpKadai.id);
+                      await NotificationService.scheduleNotification(editedKadai, edited_noti_time);
+                      dialogmsg = "通知を$edited_noti_time分前に変更しました\n";
+                    }
+
+                    debugPrint('edited_noti_time: $edited_noti_time -- showDialog? --');
+
+                    if (edited_noti_time!=-1){
+                      await showDialog(context: context, builder: (BuildContext context) {
+                        return SimpleDialog(
+                            alignment: Alignment.center,
+                            title: Text(
+                                style: const TextStyle(
+                                    fontSize: 20
+                                ),
+                                dialogmsg
+                            )
+                        );
+                      });
+                    }
+
+                    // ★ データを再読み込みしてUIを更新
+                    setState((){
+                      _kadaiListFuture = loadLocalData();
                       Navigator.of(context).pop();
-                      },
-                  ),
-
-                  TextButton(
-                    child: const Text('OK'),
-                    onPressed: () async{
-
-                      editedKadai.name = tmpKadai.name;
-                      editedKadai.area = tmpKadai.area;
-                      editedKadai.format = tmpKadai.format;
-                      editedKadai.datetime = tmpKadai.datetime;
-                      editedKadai.timestamp = tmpKadai.timestamp;
-
-                      String dialogmsg = "通知がオフです。ご確認を⚙️\n";
-
-                      if (prefs.getInt('notification_time') == edited_noti_time){
-                        edited_noti_time = -1;
-                      }
-
-                      await editLocalData(editedKadai.id, editedKadai);
-
-                      if (prefs.getBool('notification_tf')==true){
-                        await NotificationService.cancelNotification(tmpKadai.id); // cancel specific notification
-                        await NotificationService.scheduleNotification(editedKadai, edited_noti_time); // set new notification
-                        dialogmsg = "通知を$edited_noti_time分前に変更しました\n";
-                      }
-                      // setup new notification
-
-                      debugPrint('edited_noti_time: $edited_noti_time -- showDialog? --');
-
-                      if (edited_noti_time!=-1){
-                        await showDialog(context: context, builder: (BuildContext context) {
-                          return SimpleDialog(
-                              alignment: Alignment.center,
-                              title: Text(
-                                  style: const TextStyle(
-                                      fontSize: 20
-                                  ),
-                                  dialogmsg
-                              )
-                          );
-                        });
-                      }
-
-                      setState((){
-                        kadaiList = [];
-                        loadLocalData(kadaiList);
-                        kadaiList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-                        // reset KadaiList to show updated list
-                        Navigator.of(context).pop();
-                      });},
-                  ),
-                ],
+                    });
+                  },
+                ),
+              ],
             )
         );
       },
@@ -382,11 +388,18 @@ class _MyHomePageState extends State<MyHomePage>{
   }
 
   @override
-    Widget build(BuildContext context) {
+  Widget build(BuildContext context) {
+    // MediaQueryで画面情報を取得
+    final Size screenSize = MediaQuery.of(context).size;
+    final EdgeInsets padding = MediaQuery.of(context).padding;
+
+    // 画面の横幅
+    final double screenWidth = screenSize.width;
+    // 画面の縦幅（セーフエリアを除く）
+    final double safeAreaHeight = screenSize.height - padding.top - padding.bottom;
+
     return Scaffold(
-      //resizeToAvoidBottomInset:true,
         appBar: AppBar(
-        // ローカル画像をAppBarに表示
           backgroundColor: Colors.black,
           centerTitle: true,
           title: Image.asset(
@@ -396,276 +409,292 @@ class _MyHomePageState extends State<MyHomePage>{
           ),
           actions: [
             IconButton(
-             icon: const Icon(
-               Icons.settings, size: 30,
-             ),
-              color: Colors.white,
-              onPressed: ()async {
-                debugPrint('pushed');
+                icon: const Icon(
+                  Icons.settings, size: 30,
+                ),
+                color: Colors.white,
+                onPressed: ()async {
+                  debugPrint('pushed');
 
-                final prefs = await SharedPreferences.getInstance();
-                bool bfrnoti_tf = prefs.getBool('notification_tf') ?? false;
-                int bfrnoti_time = prefs.getInt('notification_time') ?? 10;
+                  final prefs = await SharedPreferences.getInstance();
+                  bool bfrnoti_tf = prefs.getBool('notification_tf') ?? false;
+                  int bfrnoti_time = prefs.getInt('notification_time') ?? 10;
 
-                await Navigator.push(context, MaterialPageRoute(builder: (context) => const KdSettings()));
+                  await Navigator.push(context, MaterialPageRoute(builder: (context) => const KdSettings()));
 
-                bool aftnoti_tf = prefs.getBool('notification_tf') ?? false;
-                int aftnoti_time = prefs.getInt('notification_time') ?? 10;
+                  bool aftnoti_tf = prefs.getBool('notification_tf') ?? false;
+                  int aftnoti_time = prefs.getInt('notification_time') ?? 10;
 
-                // in case
-                if ((bfrnoti_tf == false && aftnoti_tf == true) || // enabled notification
-                    (bfrnoti_tf == true && aftnoti_tf == false) || // disabled notification
-                    ((bfrnoti_tf == true && aftnoti_tf == true) && (bfrnoti_time != aftnoti_time))){ // kept enabled and changed the noti time
-                  await setupAllNotifications(kadaiList);
-                } // else : kept disabled notification (no matter whether noti time changed or not.) or kept enabled and noti time hasn't changed.
-
-              }
+                  if (
+                        (bfrnoti_tf == false && aftnoti_tf == true) ||
+                        (bfrnoti_tf == true && aftnoti_tf == false) ||
+                        ((bfrnoti_tf == true && aftnoti_tf == true) && (bfrnoti_time != aftnoti_time))
+                  ){
+                    await setupAllNotifications(kadaiList); // ★ kadaiListはFutureBuilderから渡されたものを使用
+                  }
+                }
             )
           ],
-
         ),
+        // ★ ここからbodyをFutureBuilderでラップ
+        body: FutureBuilder<List<kadaidata>>(
+          future: _kadaiListFuture,
+          builder: (context, snapshot) {
+            // 1. 読み込み中の処理
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+            // 2. エラーが発生した場合の処理
+            if (snapshot.hasError) {
+              return Center(
+                child: Text('エラーが発生しました: ${snapshot.error}'),
+              );
+            }
+            // 3. 読み込みが成功した場合の処理
+            if (snapshot.hasData) {
+              // Futureから取得した最新のデータをStateのkadaiListに反映
+              kadaiList = snapshot.data!;
 
-      body: SingleChildScrollView(
-        child:Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top:50, bottom:15),
-                child: Column(
-                children: [
-                  Text(
-                    DateFormat.yMMMMEEEEd('ja_JP').format(DateTime.now()),
-                    style: const TextStyle(
-                      fontSize:24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-
-                  Text(
-                    DateFormat('HH:mm:ss').format(DateTime.now()),
-                    style: const TextStyle(
-                      fontSize:30,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ])
-              ),
-
-              Material(
-                child: Ink.image(
-                  height: 180,
-                  width: 180,
-                  image: const AssetImage('assets/images/kadahira-logo-v2.png'),
-                  fit: BoxFit.cover,
-                  child: InkWell(
-                      onTap:() async {
-                        new_kadai = await Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context)=> const Submit())
-                        );
-
-                        if(new_kadai!=null){
-                          final prefs = await SharedPreferences.getInstance();
-                          if (prefs.getBool('notification_tf')==true) {
-                            NotificationService.scheduleNotification(new_kadai!,-1);
-                          }// set notification
-
-                          setState((){
-                            kadaiList.add(new_kadai!);
-                            // push new kadai for the Lists
-                            kadaiList.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-                            // sort by date time at here
-                          });
-                        }},
-                      splashColor: Colors.white.withOpacity(0.2)//withOpacity:add opacity
-                    ),
-                ),
-              ),
-
-              const Padding(
-                padding: EdgeInsets.only(top:15, bottom:5),
-                child:Text(
-                  '▲ 課題の登録はここから ▲',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: 18
-                  ),
-                ),
-              ),
-
-              Container(
-                height: 400,
-                padding: const EdgeInsets.all(4),
-                // childrenを指定してリスト表示
-
-                child: ListView(
-                  children:List<Widget>.generate ( kadaiList.length, (int index) { // gererate(number of kadai ( value of index () {
-                    poolkadai = kadaiList.elementAt(index); // extract kadai of index
-                    Color datetimeColor = Colors.black;
-                    Color kadainameColor = Colors.black;
-                    String nowDateTime = DateFormat('yyyy-MM-dd').format(DateTime.now());
-                    String poolDateTime = DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(poolkadai.timestamp));
-
-                    if ( nowDateTime == poolDateTime){ // if the due of the kadai is today
-                      if (DateTime.now().millisecondsSinceEpoch < poolkadai.timestamp) { // && now < the due
-                        datetimeColor = Colors.redAccent; // set text color red
-                      }else{
-                        datetimeColor = Colors.black26; // now > the due (but same day)
-                        kadainameColor = Colors.black26;
-                      }
-                    }else if ( DateTime.now().millisecondsSinceEpoch > poolkadai.timestamp ){
-                      datetimeColor = Colors.black26; // now > the due
-                      kadainameColor = Colors.black26;
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.all(10),
-                      child:
-                      InkWell( // InkWellのchildとすることでContainerのタップを実装できる
-                          onTap: (){
-                            poolkadai = kadaiList.elementAt(index);
-                            showDialog(
-                                context: context,
-                                builder: (context){
-                                    return AlertDialog(
-                                        content: Padding(
-                                          padding: const EdgeInsets.only(top: 15, bottom: 5),
-                                          child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                            // minimum area size for children of column
-                                          children: [
-                                            Text('提出先 : ${poolkadai.area}', style: const TextStyle(fontSize: 22)),
-                                            Text('形式 : ${poolkadai.format}', style: const TextStyle(fontSize: 22)),
-                                            //Text('id : ${poolkadai.id}', style: const TextStyle(fontSize: 12))
-                                          ],
-                                        ),
-                                      )
-                                    );
-                                  }
+              // ---- ここから下が、元の body の中身 ----
+              return SingleChildScrollView(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Padding(
+                          padding: const EdgeInsets.only(top:50, bottom:15),
+                          child: Column(
+                              children: [
+                                Text(
+                                  DateFormat.yMMMMEEEEd('ja_JP').format(DateTime.now()),
+                                  style: const TextStyle(
+                                    fontSize:24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  DateFormat('HH:mm:ss').format(DateTime.now()),
+                                  style: const TextStyle(
+                                    fontSize:30,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ])
+                      ),
+                      Material(
+                        child: Ink.image(
+                          height: screenWidth * 0.4,
+                          width: screenWidth * 0.4,
+                          image: const AssetImage('assets/images/kadahira-logo-v2.png'),
+                          fit: BoxFit.cover,
+                          child: InkWell(
+                              onTap:() async {
+                                new_kadai = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context)=> const Submit())
                                 );
-                            },
 
-                          child:
-                          Container(
-                              decoration: BoxDecoration( // BoxDecorationで角丸に
-                              border: Border.all(color: const Color.fromRGBO(0, 0, 0, 90), width: 3),
-                              borderRadius: BorderRadius.circular(10),
-                              color: (index % 2 == 0) ? Colors.white10 : Colors.black12 // 偶数：白　奇数：灰色
-                            ),
-                            height: 96,
-                              padding: const EdgeInsets.only(top:10),
-
-                              child: Column(
-                                children: [
-                                  Text(
-                                    poolkadai.name,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis, // [textmaxsize]... ← this one
-                                    style: TextStyle(
-                                      fontSize: 21,
-                                      fontWeight: FontWeight.bold,
-                                      color: kadainameColor
-                                    ),
-                                  ),
-
-                                  Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          ('〆切:${poolkadai.datetime}'),
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: datetimeColor
-                                        ),
-                                      ),
-                                        TextButton(
-                                          child: const Text(
-                                              '[ 提出完了! ]',
-                                              style: TextStyle(
-                                                  color: Colors.indigo,
-                                                  fontSize: 18
-                                              )
-                                          ),
-                                            onPressed: (){
-                                              showDialog(
-                                                context: context,
-                                                builder: (context){
-                                                    return AlertDialog(
-                                                    title: const Text(
-                                                      '提出できましたか？',
-                                                    ),
-                                                    actions: [
-                                                      TextButton(
-                                                        child:const Text('まだ', style: TextStyle(fontSize: 18, color: Colors.black54)),
-                                                        onPressed: () => Navigator.pop(context),
-                                                      ),
-                                                      TextButton(
-                                                        child:const Text('できた！', style: TextStyle(fontSize: 18, color: Colors.indigo)),
-                                                        onPressed: () async{
-                                                          _count_done();
-                                                          // count finished ones for easter_egg (prefs)
-
-                                                          poolkadai = kadaiList[index];
-                                                          kadaiList.removeAt(index);
-                                                          // Delete the kadai
-
-                                                          await NotificationService.cancelNotification(poolkadai.id);
-                                                          // cancel notification
-
-                                                          deleteLocalData(poolkadai.id);
-                                                          // Delete kadai from the DB
-
-                                                          Navigator.pop(context);
-                                                          showDialog(
-                                                              context: context,
-                                                              builder: (context) {
-                                                                return const AlertDialog(
-                                                                    title: Text('お疲れ様でした🥳'));
-                                                              });
-                                                          },
-                                                      ),
-                                                    ],
-                                                  );
-                                                });
-                                              },
-                                        ),
-                                        IconButton(
-                                            onPressed: (){
-                                              poolkadai = kadaiList[index];
-                                              showEditDialog(context, poolkadai);
-                                            },
-                                            icon: const Icon(Icons.edit)
-                                        )
-                                      ]
-                                  ),
-                              ],
-                            ),
+                                if(new_kadai!=null){
+                                  final prefs = await SharedPreferences.getInstance();
+                                  if (prefs.getBool('notification_tf')==true) {
+                                    NotificationService.scheduleNotification(new_kadai!,-1);
+                                  }
+                                  // ★ データを再読み込みしてUIを更新
+                                  setState((){
+                                    _kadaiListFuture = loadLocalData();
+                                  });
+                                }},
+                              splashColor: Colors.white.withOpacity(0.2)
                           ),
                         ),
-                      );
-                    },
-                  ),
-                ),
-              ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(top:15, bottom:5),
+                        child:Text(
+                          '▲ 課題の登録はここから ▲',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 16
+                          ),
+                        ),
+                      ),
+                      Container(
+                        width: screenWidth * 0.9,
+                        height: safeAreaHeight * 0.46,
+                        padding: const EdgeInsets.all(4),
+                        child: ListView(
+                          children:List<Widget>.generate ( kadaiList.length, (int index) {
+                            poolkadai = kadaiList.elementAt(index);
+                            Color datetimeColor = Colors.black;
+                            Color kadainameColor = Colors.black;
+                            String nowDateTime = DateFormat('yyyy-MM-dd').format(DateTime.now());
+                            String poolDateTime = DateFormat('yyyy-MM-dd').format(DateTime.fromMillisecondsSinceEpoch(poolkadai.timestamp));
 
-              const Padding(
-                padding: EdgeInsets.only(bottom: 8),
-                child:Text(
-                  '©2024 v_tnta',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Colors.black54
+                            if ( nowDateTime == poolDateTime){
+                              if (DateTime.now().millisecondsSinceEpoch < poolkadai.timestamp) {
+                                datetimeColor = Colors.redAccent;
+                              }else{
+                                datetimeColor = Colors.black26;
+                                kadainameColor = Colors.black26;
+                              }
+                            }else if ( DateTime.now().millisecondsSinceEpoch > poolkadai.timestamp ){
+                              datetimeColor = Colors.black26;
+                              kadainameColor = Colors.black26;
+                            }
+                            return Padding(
+                              padding: const EdgeInsets.all(10),
+                              child:
+                              InkWell(
+                                onTap: (){
+                                  poolkadai = kadaiList.elementAt(index);
+                                  showDialog(
+                                      context: context,
+                                      builder: (context){
+                                        return AlertDialog(
+                                            content: Padding(
+                                              padding: const EdgeInsets.only(top: 15, bottom: 5),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text('提出先 : ${poolkadai.area}', style: const TextStyle(fontSize: 22)),
+                                                  Text('形式 : ${poolkadai.format}', style: const TextStyle(fontSize: 22)),
+                                                ],
+                                              ),
+                                            )
+                                        );
+                                      }
+                                  );
+                                },
+                                child:
+                                Container(
+                                  decoration: BoxDecoration(
+                                      border: Border.all(color: const Color.fromRGBO(0, 0, 0, 90), width: 3),
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: (index % 2 == 0) ? Colors.white10 : Colors.black12
+                                  ),
+                                  height: 96,
+                                  padding: const EdgeInsets.only(top:10),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        poolkadai.name,
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                            fontSize: 21,
+                                            fontWeight: FontWeight.bold,
+                                            color: kadainameColor
+                                        ),
+                                      ),
+                                      Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              ('〆切:${poolkadai.datetime}'),
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: datetimeColor
+                                              ),
+                                            ),
+                                            Row(
+                                              children: [
+                                                IconButton(
+                                                    icon: const Icon(Icons.edit),
+                                                    onPressed: (){
+                                                      poolkadai = kadaiList[index];
+                                                      showEditDialog(context, poolkadai);
+                                                    }
+                                                ),
+                                                IconButton(
+                                                  icon: const Icon(Icons.check_box_sharp),
+                                                  iconSize: 30,
+                                                  color: Colors.green,
+                                                  onPressed: (){
+                                                    showDialog(
+                                                        context: context,
+                                                        builder: (context){
+                                                          return AlertDialog(
+                                                            title: const Text(
+                                                              '提出できましたか？',
+                                                            ),
+                                                            actions: [
+                                                              TextButton(
+                                                                child:const Text('まだ', style: TextStyle(fontSize: 18, color: Colors.black54)),
+                                                                onPressed: () => Navigator.pop(context),
+                                                              ),
+                                                              TextButton(
+                                                                child:const Text('できた！', style: TextStyle(fontSize: 18, color: Colors.indigo)),
+                                                                onPressed: () async{
+                                                                  _count_done();
+
+                                                                  poolkadai = kadaiList[index];
+
+                                                                  try {
+                                                                    await NotificationService.cancelNotification(poolkadai.id);
+                                                                    await deleteLocalData(poolkadai.id);
+                                                                    debugPrint("Clearing the notification: Safely done!");
+                                                                  }catch (error){
+                                                                    debugPrint("ERROR: During clearing the notification → ${error} ");
+                                                                  }
+
+
+                                                                  // ★ データを再読み込みしてUIを更新
+                                                                  setState(() {
+                                                                    _kadaiListFuture = loadLocalData();
+                                                                  });
+
+                                                                  Navigator.pop(context);
+                                                                  showDialog(
+                                                                      context: context,
+                                                                      builder: (context) {
+                                                                        return const AlertDialog(
+                                                                            title: Text('お疲れ様でした🥳'));
+                                                                      });
+                                                                },
+                                                              ),
+                                                            ],
+                                                          );
+                                                        });
+                                                  },
+                                                )
+                                              ],
+                                            )
+
+                                          ]
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                          ),
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8),
+                        child:Text(
+                          '©2024 v_tnta',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              color: Colors.black54
+                          ),
+                        ),
+                      )
+                    ],
                   ),
                 ),
-              )
-            ],
-          ),
-        ),
-      )
+              );
+            }
+            // 4. データが空の場合 (念のため)
+            return const Center(child: Text('課題データがありません。'));
+          },
+        )
     );
   }
 }

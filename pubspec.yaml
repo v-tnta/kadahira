@@ -1,7 +1,7 @@
 name: kadahira
 description: "カダイがでたらヒラくやつ"
 publish_to: 'none'
-version: 1.2.1
+version: 1.2.2
 
 environment:
   sdk: '>=3.4.1 <4.0.0'
@@ -15,7 +15,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   flutter_datetime_picker_plus: ^2.2.0
   shared_preferences: ^2.3.2
-  sqflite: ^2.2.0+3
+  sqflite: ^2.4.2
   path: ^1.8.3
   flutter_launcher_icons: ^0.14.1
   google_fonts: ^6.2.1
@@ -23,6 +23,15 @@ dependencies:
   flutter_timezone: ^4.1.0
   permission_handler: ^12.0.0+1
   timezone: ^0.10.0
+
+#dependency_overrides:
+#  path_provider:
+#    git:
+#      url: https://github.com/flutter/packages.git
+#  path_provider_foundation:
+#    git:
+#      url: https://github.com/flutter/packages.git
+#      path: packages/path_provider/path_provider_foundation
 
 dev_dependencies:
   flutter_test:
