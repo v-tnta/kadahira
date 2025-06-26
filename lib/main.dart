@@ -18,7 +18,7 @@ import 'package:kadahira/dbhelper.dart';
 import 'package:kadahira/kadaidata.dart';
 import 'package:kadahira/submit.dart';
 import 'package:kadahira/notificationservice.dart';
-
+import 'package:kadahira/responsive_helper.dart';
 
 //// notification  ////
 
@@ -186,14 +186,14 @@ class _MyHomePageState extends State<MyHomePage>{
 
   // Edit Dialog
   Future<void> showEditDialog(BuildContext context, kadaidata poolkadai) async {
-    // ... (この関数の中身は変更なし) ...
-    // ただし、最後のsetStateの中身を修正します。
     kadaidata tmpKadai = kadaidata(
         poolkadai.id, poolkadai.name,
         poolkadai.datetime, poolkadai.area,
-        poolkadai.format, poolkadai.timestamp);
+        poolkadai.format, poolkadai.timestamp
+    );
 
-    kadaidata editedKadai = tmpKadai;
+    kadaidata editedKadai = new kadaidata(tmpKadai.id, tmpKadai.name, tmpKadai.datetime, tmpKadai.area, tmpKadai.format, tmpKadai.timestamp);
+
 
     DateTime currentDT = DateTime.fromMillisecondsSinceEpoch(poolkadai.timestamp);
 
@@ -202,7 +202,12 @@ class _MyHomePageState extends State<MyHomePage>{
 
     int edited_noti_time = -1;
     final prefs = await SharedPreferences.getInstance();
-    String notiTime = prefs.getInt('notification_time').toString();
+
+    int? notiTimeRaw = prefs.getInt('notification_time');
+    String notiTime = "10"; // init value
+    if (notiTimeRaw != null){
+      notiTime = notiTimeRaw.toString(); // for editForm
+    }
 
     return showDialog<void>(
       context: context,
@@ -275,7 +280,7 @@ class _MyHomePageState extends State<MyHomePage>{
                                     currentDT=val;
                                     DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
                                     EditFormController.text = formatter.format(val);
-                                    tmpKadai.datetime = EditFormController.text;
+                                    tmpKadai.datetime = formatter.format(val);
                                     tmpKadai.timestamp = val.millisecondsSinceEpoch;
                                   },
                                 );
@@ -289,9 +294,9 @@ class _MyHomePageState extends State<MyHomePage>{
                         Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
+                              Text(
                                 "提出〆切の",
-                                style: TextStyle(fontSize: 14),
+                                style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize: 14)),
                               ),
                               SizedBox(
                                 width: 80,
@@ -299,7 +304,7 @@ class _MyHomePageState extends State<MyHomePage>{
                                   textAlign: TextAlign.center,
                                   keyboardType: TextInputType.number,
                                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize:16), fontWeight: FontWeight.bold),
                                   decoration:  InputDecoration(hintText: '($notiTime)', hintStyle: const TextStyle(color: Colors.grey)),
                                   onChanged:(val){
                                     if (val.isNotEmpty){
@@ -311,13 +316,13 @@ class _MyHomePageState extends State<MyHomePage>{
                                   },
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 "分前",
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize:14), fontWeight: FontWeight.bold),
                               ),
-                              const Text(
+                              Text(
                                 "に通知",
-                                style: TextStyle(fontSize: 14),
+                                style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize:14)),
                               ),
                             ]
                         )
@@ -337,6 +342,12 @@ class _MyHomePageState extends State<MyHomePage>{
                   child: const Text('OK'),
                   onPressed: () async{
 
+                    bool isDateTimeChanged = false;
+                    if (editedKadai.timestamp != poolkadai.timestamp){
+                      isDateTimeChanged=true;
+                    }
+
+                    // updating editedKadai
                     editedKadai.name = tmpKadai.name.isEmpty ? poolkadai.name : tmpKadai.name;
                     editedKadai.area = tmpKadai.area.isEmpty ? poolkadai.area : tmpKadai.area;
                     editedKadai.format = tmpKadai.format.isEmpty ? poolkadai.format : tmpKadai.format;
@@ -345,17 +356,30 @@ class _MyHomePageState extends State<MyHomePage>{
 
                     String dialogmsg = "通知がオフです。ご確認を⚙️\n";
 
-                    if (prefs.getInt('notification_time') == edited_noti_time){
+                    await editLocalData(editedKadai.id, editedKadai); // updating KadaiList
+
+                    if (prefs.getInt('notification_time') == edited_noti_time){ // edited_noti 変更なしなら
                       edited_noti_time = -1;
                     }
 
-                    await editLocalData(editedKadai.id, editedKadai);
+                    if (isDateTimeChanged || (prefs.getInt('notification_time') != edited_noti_time)){ // 日時が変更 OR 通知時間が変更された場合
+                      if (prefs.getBool('notification_tf')==true){
+                        await NotificationService.cancelNotification(editedKadai.id);
+                        await NotificationService.scheduleNotification(editedKadai, edited_noti_time);
 
-                    if (prefs.getBool('notification_tf')==true){
-                      await NotificationService.cancelNotification(tmpKadai.id);
-                      await NotificationService.scheduleNotification(editedKadai, edited_noti_time);
-                      dialogmsg = "通知を$edited_noti_time分前に変更しました\n";
+                        if (isDateTimeChanged){
+                          dialogmsg = "連動して通知時間も変更しました\n";
+                        }
+                        if (prefs.getInt('notification_time') != edited_noti_time){
+                          dialogmsg = "通知を$edited_noti_time分前に変更しました\n";
+                        }
+
+                        if (isDateTimeChanged){
+                          dialogmsg = "通知時間を変更しました\n通知を$edited_noti_time分前に変更しました";
+                        }
+                      }
                     }
+
 
                     debugPrint('edited_noti_time: $edited_noti_time -- showDialog? --');
 
@@ -364,8 +388,8 @@ class _MyHomePageState extends State<MyHomePage>{
                         return SimpleDialog(
                             alignment: Alignment.center,
                             title: Text(
-                                style: const TextStyle(
-                                    fontSize: 20
+                                style: TextStyle(
+                                    fontSize: getResponsiveFontSize(context, baseFontSize:20)
                                 ),
                                 dialogmsg
                             )
@@ -464,20 +488,20 @@ class _MyHomePageState extends State<MyHomePage>{
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Padding(
-                          padding: const EdgeInsets.only(top:50, bottom:15),
+                          padding: EdgeInsets.only(top:(screenWidth < 400) ? 30 : 50, bottom:15),
                           child: Column(
                               children: [
                                 Text(
                                   DateFormat.yMMMMEEEEd('ja_JP').format(DateTime.now()),
-                                  style: const TextStyle(
-                                    fontSize:24,
+                                  style: TextStyle(
+                                    fontSize: (screenWidth < 400) ? 20 : 24,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                                 Text(
                                   DateFormat('HH:mm:ss').format(DateTime.now()),
-                                  style: const TextStyle(
-                                    fontSize:30,
+                                  style: TextStyle(
+                                    fontSize:(screenWidth < 400) ? 26 : 30,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
@@ -485,8 +509,8 @@ class _MyHomePageState extends State<MyHomePage>{
                       ),
                       Material(
                         child: Ink.image(
-                          height: screenWidth * 0.4,
-                          width: screenWidth * 0.4,
+                          height: getResponsiveLogoPic(context, screenWidth: screenWidth),
+                          width: getResponsiveLogoPic(context, screenWidth: screenWidth),
                           image: const AssetImage('assets/images/kadahira-logo-v2.png'),
                           fit: BoxFit.cover,
                           child: InkWell(
@@ -510,13 +534,13 @@ class _MyHomePageState extends State<MyHomePage>{
                           ),
                         ),
                       ),
-                      const Padding(
+                      Padding(
                         padding: EdgeInsets.only(top:15, bottom:5),
                         child:Text(
                           '▲ 課題の登録はここから ▲',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                              fontSize: 16
+                              fontSize: getResponsiveFontSize(context, baseFontSize:16)
                           ),
                         ),
                       ),
@@ -544,7 +568,7 @@ class _MyHomePageState extends State<MyHomePage>{
                               kadainameColor = Colors.black26;
                             }
                             return Padding(
-                              padding: const EdgeInsets.all(10),
+                              padding: EdgeInsets.all((screenWidth < 400) ? 6 : 10),
                               child:
                               InkWell(
                                 onTap: (){
@@ -558,8 +582,8 @@ class _MyHomePageState extends State<MyHomePage>{
                                               child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  Text('提出先 : ${poolkadai.area}', style: const TextStyle(fontSize: 22)),
-                                                  Text('形式 : ${poolkadai.format}', style: const TextStyle(fontSize: 22)),
+                                                  Text('提出先 : ${poolkadai.area}', style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize:22))),
+                                                  Text('形式 : ${poolkadai.format}', style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize:22))),
                                                 ],
                                               ),
                                             )
@@ -574,9 +598,10 @@ class _MyHomePageState extends State<MyHomePage>{
                                       borderRadius: BorderRadius.circular(10),
                                       color: (index % 2 == 0) ? Colors.white10 : Colors.black12
                                   ),
-                                  height: 96,
+                                  height: (screenWidth < 400) ? 84 : 96, // 画面はばが小さければ縦幅を小さく、大きければ通常サイズに
                                   padding: const EdgeInsets.only(top:10),
                                   child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
                                         poolkadai.name,
@@ -584,7 +609,7 @@ class _MyHomePageState extends State<MyHomePage>{
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                            fontSize: 21,
+                                            fontSize: getResponsiveFontSize(context, baseFontSize:21),
                                             fontWeight: FontWeight.bold,
                                             color: kadainameColor
                                         ),
@@ -596,7 +621,7 @@ class _MyHomePageState extends State<MyHomePage>{
                                               ('〆切:${poolkadai.datetime}'),
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
-                                                  fontSize: 17,
+                                                  fontSize: getResponsiveFontSize(context, baseFontSize:17),
                                                   fontWeight: FontWeight.bold,
                                                   color: datetimeColor
                                               ),
@@ -624,11 +649,11 @@ class _MyHomePageState extends State<MyHomePage>{
                                                             ),
                                                             actions: [
                                                               TextButton(
-                                                                child:const Text('まだ', style: TextStyle(fontSize: 18, color: Colors.black54)),
+                                                                child: Text('まだ', style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize:18), color: Colors.black54)),
                                                                 onPressed: () => Navigator.pop(context),
                                                               ),
                                                               TextButton(
-                                                                child:const Text('できた！', style: TextStyle(fontSize: 18, color: Colors.indigo)),
+                                                                child: Text('できた！', style: TextStyle(fontSize: getResponsiveFontSize(context, baseFontSize:18), color: Colors.indigo)),
                                                                 onPressed: () async{
                                                                   _count_done();
 

@@ -206,7 +206,7 @@ class _SubmitState extends State<Submit> {
                         child: TextFormField(
                           decoration: const InputDecoration(
                               labelText: '提出サキ',
-                              hintText: 'Teams, manaba  等'
+                              hintText: '(任意) Teams, manaba  等'
                           ),
                           onChanged: (kadaiArea){
                               submit.area = kadaiArea;
@@ -226,7 +226,7 @@ class _SubmitState extends State<Submit> {
                           //controller: _controllertwo, // // // this is also my settings
                           decoration: const InputDecoration(
                               labelText: '提出ケイシキ',
-                              hintText: 'PDF, Word  等'
+                              hintText: '(任意) PDF, Word  等'
                             ),
                           onChanged: (kadaiFormat){
                               submit.format = kadaiFormat;
