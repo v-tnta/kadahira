@@ -110,42 +110,15 @@ class _KdSettingsState extends State<KdSettings> {
                       style: TextStyle(color: EasterEggColor),
                     )),
 
-                Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
+
+                Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text(
-                          "提出〆切の",
-                          style: TextStyle(fontSize: 18),
-                        ),
-                        SizedBox(
-                          width: 40,
-                          child: TextFormField(
-                              textAlign: TextAlign.center,
-                              controller: _controller_noti,
-                              keyboardType: TextInputType.number,
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                              onChanged: (input) async {
-                                final prefs = await SharedPreferences.getInstance();
-                                final intVal = int.tryParse(input);
-                                if (intVal != null) {
-                                  await prefs.setInt('notification_time', intVal);
-                                  debugPrint("notification_time: $intVal");
-                                }else{
-                                  await prefs.setInt('notification_time', 10);
-                                  debugPrint("notification_time: 10");
-                                }
-                              }),
-                        ),
-                        const Text(
-                          "分前",
+                          "通知設定🔔",
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
-                        const Text(
-                          "に通知",
-                          style: TextStyle(fontSize: 18),
-                        ),
+
                         const SizedBox(width: 10),
                         Switch(
                             value: isSwitch,
@@ -159,9 +132,51 @@ class _KdSettingsState extends State<KdSettings> {
                               debugPrint("notification_tf: $val");
                             })
                       ],
-                    )),
+                    ),
 
-                const SizedBox(width: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "デフォルト🛠️　提出〆切の",
+                      style: TextStyle(fontSize: 18),
+                    ),
+                    SizedBox(
+                      width: 40,
+                      child: TextFormField(
+                          textAlign: TextAlign.center,
+                          controller: _controller_noti,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                          onChanged: (input) async {
+                            final prefs = await SharedPreferences.getInstance();
+                            final intVal = int.tryParse(input);
+                            if (intVal != null) {
+                              await prefs.setInt('notification_time', intVal);
+                              debugPrint("notification_time: $intVal");
+                            }else{
+                              await prefs.setInt('notification_time', 10);
+                              debugPrint("notification_time: 10");
+                            }
+                          }),
+                    ),
+                    const Text(
+                      "分前",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+
+                const Padding(padding: EdgeInsets.only(bottom: 6)),
+
+                const Text(
+                    "※ カダイ登録画面にてデフォルトで表示される値",
+                  textAlign: TextAlign.center,
+                ),
+
+                const Padding(padding: EdgeInsets.only(bottom: 8)),
+
+                const Divider(),
 
                 TextButton(
                   onPressed: () {

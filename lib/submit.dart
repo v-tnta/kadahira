@@ -39,6 +39,9 @@ class _SubmitState extends State<Submit> {
   // ★ 初期値としてデフォルト通知時間を設定
   late kadaidata submit;
 
+  // 通知機能がオンかオフか
+  bool isNotificationOn = false;
+
   // DateFomatter
   DateFormat formatter = DateFormat('yyyy-M-d HH:mm');
 
@@ -48,24 +51,25 @@ class _SubmitState extends State<Submit> {
   // TextEditingController を定義して TextField に使う
   final TextEditingController _dateController = TextEditingController();
   // TextEditingControllerを使用して値を管理
-  final TextEditingController _controllerone = TextEditingController();
-  final TextEditingController _controllertwo = TextEditingController();
+  final TextEditingController _notificationController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _initializeSubmitData();
     Timer.periodic(const Duration(seconds: 1), _onTimer);
-    _controllerone.text = '0';
-    _controllertwo.text = '1';
   }
 
   // ★ SharedPreferencesからデフォルト通知時間を読み込み、kadaidataを初期化する
   Future<void> _initializeSubmitData() async {
     final prefs = await SharedPreferences.getInstance();
     final defaultNotiTime = prefs.getInt('notification_time') ?? 10;
+    if (prefs.getBool('notification_tf') ?? false){
+      isNotificationOn = true;
+    }
     setState(() {
       submit = kadaidata(0, '', '', '', '', 0, defaultNotiTime);
+      _notificationController.text = defaultNotiTime.toString();
     });
   }
 
@@ -78,18 +82,11 @@ class _SubmitState extends State<Submit> {
     }
   }
 
-  void setText(){
-    _controllerone.text = 'manaba';
-    _controllertwo.text = 'PDF';
-  }
-
 
   @override
   void dispose() {
     // TextEditingControllerの破棄
     _dateController.dispose();
-    _controllerone.dispose();
-    _controllertwo.dispose();
     super.dispose();
   }
 
@@ -204,44 +201,63 @@ class _SubmitState extends State<Submit> {
                 ),
 
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                        height: 80,
-                        width: 200,
-                        child: TextFormField(
-                          decoration: const InputDecoration(
-                              labelText: '提出サキ',
-                              hintText: '(任意) Teams, manaba  等'
-                          ),
-                          onChanged: (kadaiArea){
-                              submit.area = kadaiArea;
-                          },
-                        )
-                    ),
-                  ],
+                SizedBox(
+                    height: 80,
+                    width: 200,
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                          labelText: '提出サキ',
+                          hintText: '(任意) Teams, manaba  等'
+                      ),
+                      onChanged: (kadaiArea){
+                        submit.area = kadaiArea;
+                        },
+                    )
                 ),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                        height: 80,
-                        width: 200,
-                        child: TextFormField(
-                          //controller: _controllertwo, // // // this is also my settings
-                          decoration: const InputDecoration(
-                              labelText: '提出ケイシキ',
-                              hintText: '(任意) PDF, Word  等'
-                            ),
-                          onChanged: (kadaiFormat){
-                              submit.format = kadaiFormat;
-                          },
-                        )
-                    ),
-                  ],
+
+                SizedBox(
+                    height: 80,
+                    width: 200,
+                    child: TextFormField(
+                      //controller: _controllertwo, // // // this is also my settings
+                      decoration: const InputDecoration(
+                          labelText: '提出ケイシキ',
+                          hintText: '(任意) PDF, Word  等'
+                      ),
+                      onChanged: (kadaiFormat){
+                        submit.format = kadaiFormat;
+                        },
+                    )
                 ),
+
+                if (isNotificationOn)
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text("〆切から"),
+                        SizedBox(
+                          width: 40,
+                          child: TextFormField(
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            controller: _notificationController,
+                            onChanged: (value){
+                              final int? intVal = int.tryParse(value);
+                              submit.notibefore = intVal!;
+                            },
+                            style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold
+                            ),
+                          ),
+                        ),
+                        const Text("分前に通知")
+                      ]
+                  ),
+
+
+                const Padding(padding: EdgeInsets.only(bottom: 20)),
 
                 Material(
                   child: Container(
@@ -272,6 +288,7 @@ class _SubmitState extends State<Submit> {
                     ),
                   ),
                 ),
+
                 Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: TextButton(
