@@ -65,7 +65,7 @@ class NotificationService {
 
     debugPrint('scheduled time is: $scheduledTime for kadai ${kadai.name} using notibefore: ${kadai.notibefore} -- notification service --');
 
-    if (scheduledTime.isBefore(DateTime.now())) {
+    if (scheduledTime.isBefore(DateTime.now())) { // 過去の日付の場合、登録しない
       return;
     }
 

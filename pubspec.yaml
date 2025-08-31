@@ -1,10 +1,10 @@
 name: kadahira
 description: "カダイがでたらヒラくやつ"
 publish_to: 'none'
-version: 1.3.0
+version: 1.3.1
 
 environment:
-  sdk: '>=3.4.1 <4.0.0'
+  sdk: '>=3.5.0' # from 2025/9/1 it must be higher than 35
 
 dependencies:
   flutter:
@@ -55,4 +55,5 @@ flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/images/kadahira-logo-v2.png" # あなたが用意したアイコン画像のパス
-  min_sdk_android: 21 # アプリの最小SDKバージョン（通常は21でOK）
+
+min_sdk_android: 35 # from 2025/9/1 it must be higher than 35

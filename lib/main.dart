@@ -166,7 +166,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {});
     }
   }
-  Future<void> showEditDialog(BuildContext context, kadaidata poolkadai) async {
+  Future<void> showEditDialog(BuildContext context, kadaidata poolkadai, double screenSize) async {
     // ★ notibeforeをコピー
     kadaidata tmpKadai = kadaidata(
         poolkadai.id, poolkadai.name,
@@ -222,7 +222,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           children: [
                             SizedBox(
                               height: 50,
-                              width: 150,
+                              width: screenSize < 400 ? 120 : 150, // スクリーンサイズにより横幅を調整
                               child: TextField(
                                 enabled: false,
                                 controller: EditFormController,
@@ -417,6 +417,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     // 既存の課題のnotibeforeは変更しない仕様。
                     // 全通知の再設定のみ行う。
                     await setupAllNotifications(kadaiList);
+
                   }
                 }
             )
@@ -595,7 +596,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                                     icon: const Icon(Icons.edit),
                                                     onPressed: (){
                                                       poolkadai = kadaiList[index];
-                                                      showEditDialog(context, poolkadai);
+                                                      showEditDialog(context, poolkadai, screenWidth);
                                                     }
                                                 ),
                                                 IconButton(
